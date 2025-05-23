@@ -1,0 +1,43 @@
+.receipt-capture-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.receipt-capture-page h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.page-description {
+  text-align: center;
+  color: #666;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.error-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.error-actions .btn {
+  min-width: 200px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .receipt-capture-page {
+    padding: 1rem;
+  }
+
+  .page-description {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+} 

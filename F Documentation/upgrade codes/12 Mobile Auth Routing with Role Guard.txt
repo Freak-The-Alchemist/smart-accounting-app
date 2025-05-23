@@ -1,0 +1,138 @@
+// 🚀 Smart Accounting App: Petrol Station Version
+// React Native + Firebase + Web + Excel Export + Email Summary
+
+// This is a complete MVP setup for recording fuel sales, tracking shifts, logging expenses, exporting reports, and getting daily email summaries.
+
+/*
+📦 1. Core Features Implemented:
+- FuelSaleForm.tsx (fuel logging)
+- ShiftLogScreen.tsx (shift start/end)
+- ExpenseForm.tsx (expense tracker)
+- ExportScreen.tsx (mobile Excel export)
+- DateRangeFilter.tsx (React Native date filter)
+- DateRangeExport.tsx (Web Excel export with filter)
+*/
+
+/*
+🔐 Mobile Auth Routing with Role Guard
+*/
+
+// mobile/src/App.tsx (updated)
+import React, { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@smart-accounting/shared/firebase';
+
+import LoginScreen from './screens/LoginScreen';
+import SignupScreen from './screens/SignupScreen';
+import FuelSaleForm from './screens/FuelSaleForm';
+import ShiftLogScreen from './screens/ShiftLogScreen';
+import ExpenseForm from './screens/ExpenseForm';
+import ExportScreen from './screens/ExportScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) setRole(snap.data().role);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+    return unsub;
+  }, []);
+
+  if (!user) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="FuelSale" component={FuelSaleForm} />
+        <Stack.Screen name="Shifts" component={ShiftLogScreen} />
+        <Stack.Screen name="Expenses" component={ExpenseForm} />
+        {role === 'manager' && <Stack.Screen name="Export" component={ExportScreen} />}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+/*
+🔐 Web Route Guard Example (React Router)
+*/
+
+// web/src/App.tsx (basic structure)
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@smart-accounting/shared/firebase';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import AdminPanel from './components/UserRoleManager';
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists()) setRole(snap.data().role);
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+    return unsub;
+  }, []);
+
+  if (!user) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
+        {role === 'manager' && <Route path="/admin" element={<AdminPanel />} />}
+        <Route path="*" element={<Navigate to="/dashboard" />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+/*
+✅ Mobile + Web now route users based on login and role.
+Next: want to add password reset or remember-me options?
+*/

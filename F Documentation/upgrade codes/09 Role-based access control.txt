@@ -1,0 +1,51 @@
+📦 4. Role-Based Access Control (Manager vs Attendant)
+*/
+
+// shared/src/hooks/useUserRole.ts
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+
+export function useUserRole() {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const ref = doc(db, 'users', user.uid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) setRole(snap.data().role);
+    };
+    fetchRole();
+  }, []);
+
+  return role;
+}
+
+// Example: In components, use:
+// const role = useUserRole();
+// if (role !== 'manager') return null; // Hide admin features
+
+/*
+📦 5. Offline Support (Firestore cache sync)
+*/
+
+// shared/src/firebase.ts (add this to Firestore init)
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
+
+// Replace getFirestore(app) with:
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+
+// ✅ Firestore will now cache locally and sync once online.
+// Use `enableIndexedDbPersistence()` if you want classic manual control.
+
+/*
+📦 6. Wrap-up
+*/
+
+// ✅ MVP Complete
+// ✅ Role-based access (manager vs attendant)
+// ✅ Offline mode with Firestore persistence

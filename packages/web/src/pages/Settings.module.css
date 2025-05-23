@@ -1,0 +1,26 @@
+.container {
+  padding: 2rem;
+}
+
+.title {
+  margin-bottom: 2rem !important;
+  color: var(--text-color);
+}
+
+.section {
+  padding: 1.5rem;
+  background-color: var(--card-background);
+}
+
+.sectionTitle {
+  margin-bottom: 1.5rem !important;
+  color: var(--text-color);
+}
+
+.submit {
+  margin-top: 1rem !important;
+}
+
+.alert {
+  margin-top: 1rem;
+} 

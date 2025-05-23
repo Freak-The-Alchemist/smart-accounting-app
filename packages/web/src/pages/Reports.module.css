@@ -1,0 +1,66 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  margin-bottom: 2rem;
+  color: #1976d2;
+}
+
+.filters {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.reportsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.reportCard {
+  padding: 1.5rem;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  cursor: pointer;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reportCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .reportsList {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tableContainer {
+  background-color: var(--card-background);
+}
+
+.tableContainer th {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-weight: bold !important;
+}
+
+.tableContainer td {
+  color: var(--text-color);
+}
+
+.tableContainer tr:hover {
+  background-color: var(--background-color);
+} 

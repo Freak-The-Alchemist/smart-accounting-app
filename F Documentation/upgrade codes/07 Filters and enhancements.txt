@@ -1,0 +1,105 @@
+// 🚀 Smart Accounting App: Petrol Station Version
+// This React Native + Firebase project adds fuel sales tracking, shift logs, expenses, inventory, and Excel export
+// This is beginner-friendly: you'll learn what each section does step by step
+
+// ... [previous content remains unchanged] ...
+
+/*
+📅 Filters and Enhancements:
+*/
+
+// shared/src/utils/filters.ts
+export function filterByDateRange<T extends { date: string }>(data: T[], start: string, end: string): T[] {
+  return data.filter(item => {
+    const itemDate = new Date(item.date);
+    return itemDate >= new Date(start) && itemDate <= new Date(end);
+  });
+}
+
+export function groupBy<T, K extends keyof any>(array: T[], key: (item: T) => K): Record<K, T[]> {
+  return array.reduce((acc, item) => {
+    const group = key(item);
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(item);
+    return acc;
+  }, {} as Record<K, T[]>);
+}
+
+/*
+📆 Connect Filters to UI (React Native example):
+*/
+
+// mobile/src/components/DateRangeFilter.tsx
+import React, { useState } from 'react';
+import { View, Button, TextInput, Text } from 'react-native';
+
+export default function DateRangeFilter({ onFilter }: { onFilter: (start: string, end: string) => void }) {
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  return (
+    <View style={{ padding: 10 }}>
+      <Text>Start Date (YYYY-MM-DD)</Text>
+      <TextInput value={start} onChangeText={setStart} placeholder="Start Date" style={{ borderWidth: 1, marginBottom: 5 }} />
+      <Text>End Date (YYYY-MM-DD)</Text>
+      <TextInput value={end} onChangeText={setEnd} placeholder="End Date" style={{ borderWidth: 1, marginBottom: 5 }} />
+      <Button title="Apply Filter" onPress={() => onFilter(start, end)} />
+    </View>
+  );
+}
+
+/*
+✉️ Daily Summary Email Integration:
+*/
+
+// firebase/functions/src/scheduleDailyReport.ts
+// ... [reuse previous code] ...
+import * as nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS
+  }
+});
+
+export const dailySummaryEmail = onSchedule('every day 20:00', async () => {
+  const expensesSnap = await db.collection('expenses').get();
+  const total = expensesSnap.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+
+  const mailOptions = {
+    from: process.env.MAIL_USER,
+    to: process.env.MANAGER_EMAIL,
+    subject: 'Daily Expense Summary',
+    text: `Total expenses for today: KES ${total}`
+  };
+
+  await transporter.sendMail(mailOptions);
+});
+
+/*
+🌐 Web UI Filter + Export Example:
+*/
+
+// web/src/components/DateRangeExport.tsx
+import React, { useState } from 'react';
+import { downloadExcel } from '../utils/exportWebExcel';
+import { filterByDateRange } from '@smart-accounting/shared/utils/filters';
+
+export default function DateRangeExport({ data, columns, label }: any) {
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+
+  const handleExport = () => {
+    const filtered = filterByDateRange(data, start, end);
+    downloadExcel(filtered, `${label}_Filtered.xlsx`, columns);
+  };
+
+  return (
+    <div style={{ margin: '1rem' }}>
+      <label>Start Date: <input value={start} onChange={e => setStart(e.target.value)} type="date" /></label>
+      <label style={{ marginLeft: '1rem' }}>End Date: <input value={end} onChange={e => setEnd(e.target.value)} type="date" /></label>
+      <button onClick={handleExport} style={{ marginLeft: '1rem' }}>Export Filtered {label}</button>
+    </div>
+  );
+}

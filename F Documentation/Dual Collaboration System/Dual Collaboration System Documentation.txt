@@ -1,0 +1,118 @@
+# Smart Accounting App: Dual Collaboration System
+
+## Overview
+
+This document explains the dual collaboration model designed for the Smart Accounting App, which supports both **organization-based** and **independent accountant peer-to-peer collaboration**. The system empowers accounting professionals to work flexibly across different professional settings with accountability, transparency, and ease of use.
+
+---
+
+## 🔁 Collaboration Modes
+
+### 1. Organization-Based Collaboration
+
+* Accountants are grouped under a single organization (e.g., a firm or company).
+* A **Chief Accountant** manages roles and access within the organization.
+* Invite-only access to the org.
+* Built-in **audit logs**, **role management**, and **shared file space**.
+
+#### Key Benefits for Organizations:
+
+* Centralized data and permissions
+* Full control over who accesses what
+* External auditors can be invited temporarily
+
+### 2. Peer-to-Peer Collaboration (Independent Accountants)
+
+* Accountants can create **projects** independently.
+* Invite other accountants by email or link to collaborate.
+* Each project has its own members, roles, and shared files.
+* Not tied to an organization.
+
+#### Key Benefits for Independent Accountants:
+
+* Collaborate freely with other professionals
+* Maintain flexibility without needing to form a formal firm
+* Can be invited to organization audits without full membership
+
+---
+
+## 🔐 Permissions Model
+
+Roles (per org or project):
+
+* **Chief Accountant / Project Lead**: Full control
+* **Accountant**: Edit access to files and data
+* **External Auditor / Viewer**: Read-only or limited time access
+
+---
+
+## 🔧 System Architecture (Firebase)
+
+### Firestore Collections:
+
+* `users`: Stores account type, org/project membership, roles
+* `organizations`: Org profile and members list
+* `projects`: Independent projects with members
+* `invites`: Temporary invite tokens with metadata
+* `logs`: Activity tracking per org or project
+* `files`: Shared documents with metadata
+
+### Authentication:
+
+* Firebase Auth with role-based logic via Firestore rules and Cloud Functions
+
+---
+
+## 🧠 Context Switching UI
+
+Users can toggle between working under:
+
+* An **Organization** context
+* A **Project** context
+
+This prevents data crossover and clarifies roles per workspace.
+
+---
+
+## 📋 Activity Logs
+
+Every user action (file uploads, edits, invites) is logged with:
+
+* Timestamp
+* Context (org or project)
+* User ID
+* Action type
+
+This promotes accountability and simplifies debugging.
+
+---
+
+## 🎯 Why This System Works
+
+| Feature                 | Org-Based | Peer-to-Peer |
+| ----------------------- | --------- | ------------ |
+| Centralized Team        | ✅         | —            |
+| External Audit Support  | ✅         | ✅            |
+| Independent Flexibility | ❌         | ✅            |
+| Role & Log Control      | ✅         | ✅            |
+| Shared Workspace        | ✅         | ✅            |
+
+This hybrid model ensures the app serves:
+
+* Established accounting firms
+* Freelancers and independent professionals
+* Ad-hoc audit teams and financial consultants
+
+---
+
+## 🔜 Future Enhancements
+
+* Plugin-style extensions (e.g., M-Pesa integration, tax calculators)
+* Downloadable compliance reports
+* Real-time presence tracking for active users
+
+---
+
+## 💡 Summary
+
+This dual collaboration system unlocks flexible, secure, and efficient collaboration between accounting professionals of all types. Organizations gain structured teamwork and oversight, while independents enjoy open, project-based cooperation.

@@ -1,0 +1,23 @@
+{
+  "terms": {
+    "journal": "A detailed log of every transaction, listed chronologically.",
+    "ledger": "A record summarizing all transactions by account.",
+    "trial_balance": "A summary showing that total debits equal total credits.",
+    "debit": "An entry that increases assets or expenses, or decreases liabilities.",
+    "credit": "An entry that increases liabilities or income, or decreases assets."
+  },
+  "faq": [
+    {
+      "q": "How do I know my journal is balanced?",
+      "a": "The total of all debit entries must equal the total of all credit entries."
+    },
+    {
+      "q": "What is a trial balance?",
+      "a": "A trial balance ensures your books are correct before preparing financial statements."
+    },
+    {
+      "q": "Can I export my reports?",
+      "a": "Yes! Use the 'Download Excel' or 'Download PDF' button to export your journal."
+    }
+  ]
+}

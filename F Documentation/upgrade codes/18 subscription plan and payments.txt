@@ -1,0 +1,230 @@
+Here's a **ready-to-implement monetization system** tailored for Kenya (M-Pesa + cards) with global support (cards + crypto), designed for easy integration into your Smart Accounting App via Cursor:
+
+---
+
+### **1. Firebase Backend (Functions)**
+#### `firebase/functions/src/monetization.ts`
+```typescript
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+import Stripe from "stripe";
+import { Flutterwave } from "flutterwave-node-v3";
+
+admin.initializeApp();
+const stripe = new Stripe(process.env.STRIPE_KEY!, { apiVersion: "2023-08-16" });
+const flw = new Flutterwave(process.env.FLW_PUBLIC_KEY!, process.env.FLW_SECRET_KEY!);
+
+// 1. Handle Stripe (International Cards/Crypto)
+export const createStripeSubscription = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Login required");
+
+  const { planId, paymentMethod } = data; // 'plan_pro_monthly' or 'plan_fuel_annual'
+  const user = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+
+  // Attach payment method
+  await stripe.paymentMethods.attach(paymentMethod, { customer: user.data()?.stripeCustomerId });
+
+  // Create subscription
+  const subscription = await stripe.subscriptions.create({
+    customer: user.data()?.stripeCustomerId,
+    items: [{ plan: planId }],
+    expand: ["latest_invoice.payment_intent"],
+  });
+
+  return { status: subscription.status, clientSecret: subscription.latest_invoice?.payment_intent?.client_secret };
+});
+
+// 2. Handle M-Pesa (Kenya)
+export const initiateMpesaPayment = functions.https.onCall(async (data, context) => {
+  const { phone, plan } = data; // plan: 'pro_monthly_kes' ($5 ≈ KES 500)
+  const response = await flw.MobileMoney.mpesa({
+    tx_ref: `tx-${Date.now()}`,
+    amount: plan === "pro_monthly_kes" ? 500 : 1200, // KES
+    currency: "KES",
+    email: context.auth?.token.email || "",
+    phone_number: phone.replace("+", ""), // Format: 2547XXXXXXXX
+    fullname: context.auth?.token.name || "Customer",
+  });
+
+  if (response.status !== "success") throw new functions.https.HttpsError("internal", "MPesa request failed");
+  return { txRef: response.data.tx_ref };
+});
+
+// 3. Handle Crypto (USDT/USDC via Stripe)
+export const handleCryptoSubscription = functions.https.onCall(async (data, context) => {
+  const { planId, walletAddress } = data;
+  const user = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+
+  // Verify on-chain payment (simplified - integrate with Chainlink/Web3.js)
+  const paymentVerified = await verifyCryptoPayment(walletAddress, planId);
+
+  if (!paymentVerified) throw new functions.https.HttpsError("failed-precondition", "Payment not detected");
+
+  // Grant subscription
+  await admin.firestore().doc(`users/${context.auth.uid}`).update({
+    tier: planId.includes("pro") ? "pro" : "fuel_station",
+    expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days
+  });
+});
+```
+
+---
+
+### **2. Frontend Components (React/React Native)**
+#### `shared/components/PaymentSelector.tsx`
+```tsx
+import { loadStripe } from "@stripe/stripe-js";
+import { FlutterwaveButton } from "flutterwave-react-v3";
+
+// International
+export const CardPaymentButton = ({ planId, userEmail }: { planId: string; userEmail: string }) => {
+  const handlePayment = async () => {
+    const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_KEY!);
+    const { error } = await stripe!.redirectToCheckout({
+      lineItems: [{ price: planId, quantity: 1 }],
+      mode: "subscription",
+      customerEmail: userEmail,
+    });
+    if (error) alert(error.message);
+  };
+
+  return <button onClick={handlePayment}>Pay with Card/Crypto</button>;
+};
+
+// Kenya
+export const MpesaPaymentButton = ({ plan, phone }: { plan: string; phone: string }) => {
+  const config = {
+    tx_ref: `tx-${Date.now()}`,
+    amount: plan === "pro_monthly_kes" ? 500 : 1200,
+    currency: "KES",
+    payment_options: "mpesa",
+    customer: { email: "user@example.com", phone_number: phone },
+    customizations: { title: "Smart Accounting", description: "Subscription" },
+  };
+
+  return (
+    <FlutterwaveButton
+      {...config}
+      onClose={() => console.log("Payment closed")}
+      callback={(response) => console.log(response)}
+      text={`Pay KES ${config.amount} via M-Pesa`}
+    />
+  );
+};
+```
+
+---
+
+### **3. Firestore Schema**
+```typescript
+// /users/{userId}
+{
+  email: "user@example.com",
+  tier: "free", // free | pro | fuel_station
+  paymentMethods: {
+    mpesa: "+254712345678",
+    stripeCustomerId: "cus_ABC123",
+    cryptoWallets: ["0x..."]
+  },
+  subscriptions: [
+    {
+      id: "sub_XYZ",
+      plan: "pro_monthly_kes",
+      status: "active",
+      nextBillingDate: "2025-07-01"
+    }
+  ],
+  country: "KE" // ISO country code
+}
+```
+
+---
+
+### **4. Pricing Plans Configuration**
+#### `shared/config/pricing.ts`
+```typescript
+export const PLANS = {
+  // Kenya (KES)
+  pro_monthly_kes: {
+    id: "price_MPESA_PRO_MONTHLY",
+    amount: 500, // KES
+    features: ["Unlimited transactions", "OCR"],
+    currencies: ["KES"],
+    paymentMethods: ["mpesa"]
+  },
+
+  // International (USD)
+  pro_monthly_usd: {
+    id: "price_PRO_MONTHLY",
+    amount: 5, // USD
+    features: ["Unlimited transactions", "OCR"],
+    currencies: ["USD", "USDT", "USDC"],
+    paymentMethods: ["card", "crypto"]
+  },
+
+  fuel_station_yearly: {
+    id: "price_FUEL_YEARLY",
+    amount: 50, // USD
+    features: ["Pump integrations", "Tax automation"],
+    currencies: ["USD", "KES", "USDT"],
+    paymentMethods: ["card", "crypto", "mpesa"]
+  }
+};
+```
+
+---
+
+### **Key Adaptations for Kenya + Global**
+1. **M-Pesa Support**:  
+   - Uses Flutterwave's API for Kenyan mobile money.  
+   - Auto-converts USD plans to KES (~$5 → KES 500).  
+
+2. **Crypto Payments**:  
+   - Accepts USDT/USDC via Stripe's crypto on-ramp.  
+   - Fallback to manual verification for wallets.  
+
+3. **Auto-Currency Detection**:  
+   ```tsx
+   // Example: Show M-Pesa only for Kenyan users
+   {userCountry === "KE" && <MpesaPaymentButton plan="pro_monthly_kes" phone={userPhone} />}
+   ```
+
+---
+
+### **Implementation Checklist**
+1. **Set Up Providers**:  
+   ```bash
+   npm install @stripe/stripe-js flutterwave-node-v3 flutterwave-react-v3
+   ```
+2. **Configure Secrets**:  
+   - Stripe (cards/crypto): `STRIPE_KEY`  
+   - Flutterwave (M-Pesa): `FLW_PUBLIC_KEY`, `FLW_SECRET_KEY`  
+
+3. **Deploy Functions**:  
+   ```bash
+   firebase deploy --only functions
+   ```
+
+4. **Test Payments**:  
+   - Kenya: Use Flutterwave sandbox (test phone: `254712345678`)  
+   - Crypto: Stripe test USDC on Polygon `MATIC_USDC`  
+
+---
+
+### **Revenue Projections (Kenya Focus)**
+| Plan | Price | 100 Kenyan Users | 100 Global Users |
+|------|-------|------------------|------------------|
+| Pro (KES) | KES 500 | KES 50,000/mo | - |
+| Pro (USD) | $5 | - | $500/mo |
+| Fuel Station | $50 | KES 7,500*/mo | $5,000/mo |
+
+_*Assumes 15% Kenyan fuel stations pay in USD_
+
+---
+
+**Cursor Next Steps**:  
+1. Paste these files into your project.  
+2. Use Cursor's AI to:  
+   - _"Connect Stripe subscriptions to Firebase auth"_  
+   - _"Add M-Pesa test payments"_  
+   - _"Implement a crypto payment verification webhook"_  
