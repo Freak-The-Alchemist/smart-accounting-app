@@ -425,4 +425,5 @@ You can manually trigger the workflow from the GitHub Actions tab:
 1. Go to the "Actions" tab in your repository
 2. Select the "CI/CD Pipeline" workflow
 3. Click "Run workflow"
-4. Select the branch and click "Run workflow" 
+4. Select the branch and click "Run workflow" #   s m a r t - a c c o u n t i n g - a p p  
+ 
