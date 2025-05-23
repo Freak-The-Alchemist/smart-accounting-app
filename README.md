@@ -198,6 +198,7 @@ A comprehensive, accountant-focused accounting and management solution for petro
 - **State Management**: React Context, Redux Toolkit
 - **Backend**: Firebase (Firestore, Auth)
 - **OCR**: Google Cloud Vision (planned: local/affordable alternatives)
+- **CI/CD**: GitHub Actions for automated testing and deployment
 - **AI**: Custom knowledge base, planned LLM/NLP integration
 - **Type Safety**: TypeScript
 - **Testing**: Jest, Testing Library, Cypress
@@ -377,7 +378,7 @@ The project uses GitHub Actions for continuous integration and deployment. The p
    brew install gh
    
    # Windows
-   winget install GitHub.cli
+   iswinget install GitHub.cli
    
    # Linux
    sudo apt install gh
