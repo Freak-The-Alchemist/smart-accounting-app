@@ -1,3 +1,46 @@
+export type CurrencyCode = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
+
+export interface CurrencyInfo {
+  code: CurrencyCode;
+  name: string;
+  symbol: string;
+  decimalPlaces: number;
+  isDefault: boolean;
+  exchangeRate?: number;
+  lastUpdated?: Date;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CurrencyExchangeRate {
+  fromCurrency: CurrencyCode;
+  toCurrency: CurrencyCode;
+  rate: number;
+  lastUpdated: Date;
+  source: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CurrencySummary {
+  total: number;
+  byCurrency: Partial<Record<CurrencyCode, {
+    total: number;
+    count: number;
+  }>>;
+  exchangeRates: Record<string, number>;
+}
+
+export interface CurrencyFilters {
+  code?: CurrencyCode;
+  isActive?: boolean;
+  search?: string;
+}
+
 export type Currency = 'KES' | 'USD' | 'EUR' | 'GBP' | 'TZS' | 'UGX';
 
 export interface ExchangeRate {

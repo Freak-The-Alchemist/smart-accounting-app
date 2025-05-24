@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import { Account } from './Account';
 import { JournalEntry } from './JournalEntry';
+import { Currency, CurrencyCode } from './Currency';
 
 export interface BankStatementLine {
   date: Date;
@@ -12,6 +13,23 @@ export interface BankStatementLine {
   matchedEntryId?: string;
 }
 
+export enum BankReconciliationStatus {
+  PENDING = 'PENDING',
+  RECONCILED = 'RECONCILED',
+  DISPUTED = 'DISPUTED',
+}
+
+export interface BankTransaction {
+  id: string;
+  date: Date;
+  description: string;
+  amount: number;
+  type: 'credit' | 'debit';
+  reference?: string;
+  status: BankReconciliationStatus;
+  metadata?: Record<string, any>;
+}
+
 export interface BankReconciliation {
   id: string;
   accountId: string;
@@ -19,20 +37,17 @@ export interface BankReconciliation {
   statementDate: Date;
   openingBalance: number;
   closingBalance: number;
-  statementLines: BankStatementLine[];
-  status: 'draft' | 'in_progress' | 'completed';
-  currency: string;
+  transactions: BankTransaction[];
+  status: BankReconciliationStatus;
+  currency: CurrencyCode;
+  notes?: string;
+  attachments?: string[];
   organizationId: string;
   createdBy: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  completedAt?: Timestamp;
-  metadata?: {
-    statementNumber?: string;
-    bankName?: string;
-    notes?: string;
-    attachments?: string[]; // URLs to bank statements
-  };
+  createdAt: Date;
+  updatedAt: Date;
+  reconciledAt?: Date;
+  metadata?: Record<string, any>;
   reconciliationSummary: {
     totalCredits: number;
     totalDebits: number;
@@ -42,6 +57,42 @@ export interface BankReconciliation {
     interestEarned: number;
     adjustments: number;
   };
+}
+
+export interface BankReconciliationSummary {
+  total: number;
+  byStatus: {
+    [status in BankReconciliationStatus]: number;
+  };
+  byMonth: {
+    [month: string]: {
+      total: number;
+      count: number;
+    };
+  };
+  byAccount: {
+    [accountId: string]: {
+      total: number;
+      count: number;
+    };
+  };
+  byCurrency: {
+    [currency in CurrencyCode]?: {
+      total: number;
+      count: number;
+    };
+  };
+}
+
+export interface BankReconciliationFilters {
+  status?: BankReconciliationStatus;
+  accountId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  currency?: CurrencyCode;
+  search?: string;
 }
 
 // Validation rules
@@ -62,18 +113,18 @@ export const bankReconciliationValidationRules = {
     validate: (value: number) => !isNaN(value),
     message: 'Closing balance must be a valid number'
   },
-  statementLines: {
+  transactions: {
     required: true,
-    validate: (lines: BankStatementLine[]) => {
-      // Validate that all lines have required fields
-      return lines.every(line => 
-        line.date && 
-        line.description && 
-        !isNaN(line.amount) &&
-        ['credit', 'debit'].includes(line.type)
+    validate: (transactions: BankTransaction[]) => {
+      // Validate that all transactions have required fields
+      return transactions.every(transaction => 
+        transaction.date && 
+        transaction.description && 
+        !isNaN(transaction.amount) &&
+        ['credit', 'debit'].includes(transaction.type)
       );
     },
-    message: 'All statement lines must have valid date, description, amount, and type'
+    message: 'All transactions must have valid date, description, amount, and type'
   },
   currency: {
     required: true,

@@ -1,216 +1,107 @@
 # Smart Accounting App for Petrol Stations & Businesses
 
-A comprehensive, accountant-focused accounting and management solution for petrol stations and businesses. Built by accountants for accountants, featuring professional-grade accounting tools, real-time financial tracking, advanced reporting, OCR/voice input, AI assistant, and multi-user collaboration.
+A comprehensive, accountant-focused platform designed to simplify financial management for petrol stations and businesses. Built by accountants for accountants, this system offers real-time tracking, advanced reporting, AI assistance, OCR and voice input, and seamless multi-user collaboration.
 
 ---
 
 ## Table of Contents
-- [Features](#features)
-- [Roadmap & Phases](#roadmap--phases)
-- [Major Services & Models](#major-services--models)
-- [AI Assistant: Azera](#ai-assistant-azera)
-- [Collaboration & Multi-user](#collaboration--multi-user)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
-- [CI/CD Pipeline](#ci-cd-pipeline)
+
+* [Features](#features)
+* [Roadmap](#roadmap)
+* [Services & Models](#services--models)
+* [AI Assistant (Azera)](#ai-assistant-azera)
+* [Collaboration Features](#collaboration-features)
+* [Tech Stack](#tech-stack)
+* [Project Structure](#project-structure)
+* [Getting Started](#getting-started)
+* [Development Guidelines](#development-guidelines)
+* [Contributing](#contributing)
+* [License](#license)
+* [CI/CD Pipeline](#ci-cd-pipeline)
+* [Acknowledgments](#acknowledgments)
 
 ---
 
 ## Features
 
-### Core (Implemented & In Progress)
-- Real-time fuel sales tracking
-- Shift management & handover
-- Multiple payment method support
-- Daily sales summary
-- Stock & inventory management
-- Expense tracking and categorization
-- Financial reporting (daily, monthly, custom)
-- Payment method analytics
-- Data export (Excel, PDF, CSV)
-- OCR for receipt scanning (English & Swahili)
-- Voice input for transaction entry (English & Swahili)
-- Automated data extraction from receipts/voice
-- Validation and error handling
-- Accounting dashboard (web & mobile)
-- Transaction entry forms (manual, OCR, voice)
-- Data visualization (charts, breakdowns)
-- Mobile app (React Native/Expo)
-- Web app (React/MUI)
-- Firebase integration (Firestore, Auth)
-- TypeScript type safety
+### Core
 
-### Advanced & Planned
-- Multi-currency support (KES, USD, EUR, GBP, TZS, UGX)
-- Complex transaction types
-- Automated categorization
-- Reconciliation tools
-- Custom report builder
-- Data import capabilities
-- API integrations
-- AI assistant (Azera) with Swahili support
-- Real-time collaboration & multi-user editing
-- Role-based access control & permissions
-- Team management & audit trails
-- Fuel station-specific features (shift log, sales, inventory)
-- Mobile offline support & push notifications
-- Advanced analytics & forecasting
-- Third-party integrations & plugin system
-- Security, compliance, and audit systems
-- UI/UX improvements & accessibility
+* Real-time fuel sales tracking and shift handovers
+* Multi-payment method support and analytics
+* Inventory and expense management
+* Financial reports (daily, monthly, custom)
+* Data exports (Excel, PDF, CSV)
+* OCR for receipts and voice transaction entry (English & Swahili)
+* Accounting dashboard (web & mobile)
+* Manual and automated transaction entries
+* Data visualization (charts, trends)
+* Firebase integration (Firestore, Auth)
+* TypeScript support for type safety
+
+### Advanced (Planned)
+
+* Multi-currency support (KES, USD, EUR, etc.)
+* Automated reconciliation and categorization
+* Custom report builder and API integrations
+* AI assistant with Swahili NLP support
+* Real-time multi-user collaboration
+* Role-based access control and audit trails
+* Fuel station-specific shift/inventory tools
+* Offline mobile support and push notifications
+* Plugin system for third-party extensions
+* Advanced analytics, security, and compliance
 
 ---
 
-## Roadmap & Phases
+## Roadmap
 
-### Phase 1: Core Accounting Foundation
-- Basic accounting structure (models, chart of accounts, statements)
-- OCR & voice input integration
-- Basic accounting UI (dashboard, forms, reporting, visualization)
-
-### Phase 2: Enhanced Accounting Features
-- Advanced transaction management (multi-currency, reconciliation)
-- Financial reporting (balance sheet, income statement, cash flow, custom reports)
-- Data export & integration (Excel, PDF, API)
-
-### Phase 3: AI & Automation
-- Azera AI assistant (NLP, smart suggestions, Swahili support)
-- Automated reconciliation, categorization, predictive analytics
-
-### Phase 4: Collaboration & Multi-user
-- User management, roles, permissions
-- Real-time collaboration, change tracking, conflict resolution
-
-### Phase 5: Fuel Station Features
-- Sales, inventory, and shift management for fuel stations
-
-### Phase 6: Mobile Application
-- Mobile core (auth, navigation, accounting, UI)
-- Mobile OCR, voice input, offline support, push notifications
-
-### Phase 7: Advanced Features
-- Advanced analytics, business intelligence, forecasting
-- Third-party integrations, plugin system
-
-### Phase 8: Polish & Optimization
-- Performance, security, compliance, UX, documentation
+Phased implementation covering: Core Accounting, AI & Automation, Collaboration, Mobile App, Advanced Features, and Performance Optimization.
 
 ---
 
-## Major Services & Models
+## Services & Models
 
-### 1. Invoice Management
-- Professional invoice creation and tracking
-- Multi-currency support
-- Tax calculation and tracking
-- Payment status monitoring
-- Aging reports
-- Client management
-- Automated reminders
-
-### 2. Budget Management
-- Multi-period budgeting
-- Department/cost center tracking
-- Variance analysis
-- Budget vs. actual reporting
-- Forecast adjustments
-- Alert system for overruns
-
-### 3. Transaction Management
-- Double-entry recording
-- Multi-currency support
-- Tax handling
-- Category management
-- Payment tracking
-- Document attachment
-- Audit trail
-- Reconciliation tools
-
-### 4. Currency Management
-- Multi-currency support
-- Real-time exchange rates
-- Currency conversion
-- Exchange gain/loss tracking
-- Currency formatting
-- Validation rules
-
-### 5. OCR Service
-- Professional receipt scanning
-- Multi-language support (EN/SW)
-- Tax extraction
-- Vendor recognition
-- Amount validation
-- Category suggestion
-- Error detection
-
-### 6. Export Service
-- Professional report generation
-- Multiple formats (XLSX, CSV, PDF)
-- Custom templates
-- Data filtering
-- Chart generation
-- Multi-currency support
-
-### 7. Report Service
-- Financial statements
-- Custom reports
-- Trend analysis
-- Ratio calculations
-- Budget analysis
-- Tax reports
-- Audit reports
-
-#### Shared Features
-- Firebase integration, TypeScript, singleton services, error handling, user-specific data
+* Invoice, Budget, Transaction, and Currency Management
+* OCR and Export Services
+* Report generation, analytics, and compliance tools
 
 ---
 
-## AI Assistant: Azera
-- **AzeraHelper**: Web & mobile components for accountant-friendly help
-- Swahili & English support
-- Knowledge base (terms, FAQs, templates)
-- Natural language search
-- Smart suggestions for accounting tasks
-- Performance optimizations (caching, lazy loading)
-- Quick journal templates (e.g., fuel sale)
-- Example: `azera_knowledge.json` for localized help
+## AI Assistant (Azera)
+
+* Natural language help (English & Swahili)
+* Journal entry suggestions and terminology guidance
+* Contextual assistance, caching, and lazy loading support
 
 ---
 
-## Collaboration & Multi-user
-- Dual collaboration system: Organizations & Peer Projects
-- Organization/project creation, invites, role assignment
-- Real-time collaboration, multi-user editing
-- Change tracking, conflict resolution
-- Audit logs for user actions
-- Example code for Firebase-based collaboration system
+## Collaboration Features
+
+* Organization and peer-to-peer collaboration
+* Role-based permissions and audit logging
+* Real-time editing and conflict resolution
 
 ---
 
 ## Tech Stack
-- **Frontend**: React (web), React Native/Expo (mobile)
-- **UI**: Material-UI (web), React Native Paper (mobile)
-- **State Management**: React Context, Redux Toolkit
-- **Backend**: Firebase (Firestore, Auth)
-- **OCR**: Google Cloud Vision (planned: local/affordable alternatives)
-- **CI/CD**: GitHub Actions for automated testing and deployment
-- **AI**: Custom knowledge base, planned LLM/NLP integration
-- **Type Safety**: TypeScript
-- **Testing**: Jest, Testing Library, Cypress
+
+* **Frontend**: React (web), React Native/Expo (mobile)
+* **Backend**: Firebase (Firestore, Auth)
+* **UI Libraries**: Material-UI, React Native Paper
+* **OCR/AI**: Google Cloud Vision, custom models
+* **CI/CD**: GitHub Actions
+* **Languages**: TypeScript
+* **Testing**: Jest, Testing Library, Cypress
 
 ---
 
 ## Project Structure
+
 ```
 packages/
-├── web/      # Web app (React, MUI)
-├── mobile/   # Mobile app (React Native, Expo)
-├── shared/   # Shared types, services, logic
+├── web/      # Web application
+├── mobile/   # Mobile app using React Native
+├── shared/   # Shared logic and type definitions
 ```
 
 ---
@@ -218,212 +109,77 @@ packages/
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v16+)
-- npm v7+ (for workspaces)
-- Expo CLI (for mobile)
-- Firebase account
+
+* Node.js v16+
+* pnpm or npm v7+
+* Expo CLI
+* Firebase project with Firestore and Auth enabled
 
 ### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/smart-accounting-app.git
-   cd smart-accounting-app
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up Firebase:
-   - Create a Firebase project
-   - Enable Auth & Firestore
-   - Add config to `packages/shared/src/config/firebase.ts`
-4. Start development:
-   ```bash
-   npm run dev
-   ```
-5. Run on mobile:
-   ```bash
-   cd packages/mobile && npm start
-   ```
+
+```bash
+git clone git@github.com:yourusername/smart-accounting-app.git
+cd smart-accounting-app
+pnpm install
+```
+
+Configure Firebase in `packages/shared/src/config/firebase.ts`, then:
+
+```bash
+pnpm run dev
+cd packages/mobile && pnpm start
+```
 
 ---
 
-## Development
-- TypeScript best practices
-- Functional components & hooks
-- Error handling & validation
-- Meaningful comments
-- Consistent code structure
+## Development Guidelines
 
-### Testing
+* Follow TypeScript best practices
+* Use React hooks and functional components
+* Validate forms and handle errors
+
 ```bash
-npm test
-npm run test:coverage
+pnpm test
+pnpm run test:coverage
 ```
 
 ---
 
 ## Contributing
-1. Fork the repo
+
+1. Fork the repository
 2. Create a feature branch
-3. Commit & push
-4. Open a Pull Request
+3. Commit your changes
+4. Open a pull request
 
 ---
 
 ## License
-MIT License - see [LICENSE](LICENSE)
+
+This software is proprietary and copyrighted by Freak-The-Alchemist.
+
+By using this software, you agree to the terms in the [LICENSE](LICENSE), [Terms of Service](terms.md), and [Privacy Policy](privacy.md).
+
+Contact: [muthamarichard47@gmail.com](mailto:muthamarichard47@gmail.com)
+
+---
+
+## CI/CD Pipeline
+
+### Testing
+
+* GitHub Actions run tests on every push and pull request
+
+### Deployment
+
+* Web: Firebase Hosting
+* Mobile: EAS for Play Store/App Store distribution
+
+Required GitHub secrets include Firebase API keys, Service Account JSON, and Expo token.
 
 ---
 
 ## Acknowledgments
-- React Native Paper, Material-UI
-- Firebase
-- Expo
-- All contributors
 
----
-
-## Full Roadmap & Documentation
-See `F Documentation/upgrade roadmap.txt` and `F Documentation/App Functions.txt` for the complete, detailed roadmap and service descriptions. All planned and implemented features are tracked there, including:
-- AI assistant (Azera)
-- Collaboration system
-- Mobile & web features
-- Export, reporting, analytics
-- Security, compliance, and more
-
-## Core Accounting Features
-
-### Professional Accounting Tools
-- **Double-Entry Bookkeeping**
-  - Automated journal entries
-  - Debit/credit validation
-  - Transaction balancing
-  - Chart of accounts management
-- **Financial Statements**
-  - Real-time balance sheet
-  - Income statement (P&L)
-  - Cash flow statement
-  - Trial balance
-  - General ledger
-- **Account Reconciliation**
-  - Bank reconciliation
-  - Account balancing
-  - Discrepancy detection
-  - Audit trail
-
-### Accountant-Specific Features
-- **Transaction Management**
-  - Multi-currency support (KES, USD, EUR, GBP, TZS, UGX)
-  - Complex transaction types
-  - Automated categorization
-  - Tax calculation and tracking
-  - Payment method tracking
-  - Receipt/document attachment
-- **Reporting & Analytics**
-  - Custom report builder
-  - Financial ratios
-  - Trend analysis
-  - Budget vs. actual
-  - Cash flow forecasting
-  - Tax reports
-- **Compliance & Audit**
-  - Audit trails
-  - Change history
-  - User activity logs
-  - Data validation
-  - Error detection
-  - Backup and recovery
-
-### Smart Automation
-- **OCR & Voice Input**
-  - Receipt scanning (English & Swahili)
-  - Voice transaction entry
-  - Automated data extraction
-  - Smart categorization
-  - Validation and error handling
-- **AI Assistant (Azera)**
-  - Accounting terminology help
-  - Transaction suggestions
-  - Error detection
-  - Compliance checks
-  - Multi-language support (EN/SW)
-
-## CI/CD Pipeline
-
-The project uses GitHub Actions for continuous integration and deployment. The pipeline includes:
-
-### Workflow
-
-1. **Testing**
-   - Runs on every push and pull request
-   - Executes all unit tests
-   - Ensures code quality and functionality
-
-2. **Web App Deployment**
-   - Builds the web application
-   - Deploys to Firebase Hosting
-   - Only triggers on pushes to main branch
-
-3. **Mobile App Deployment**
-   - Builds Android and iOS apps using EAS
-   - Submits to Play Store and App Store
-   - Only triggers on pushes to main branch
-
-### Setup Instructions
-
-1. Install GitHub CLI:
-   ```bash
-   # macOS
-   brew install gh
-   
-   # Windows
-   iswinget install GitHub.cli
-   
-   # Linux
-   sudo apt install gh
-   ```
-
-2. Authenticate with GitHub:
-   ```bash
-   gh auth login
-   ```
-
-3. Run the setup script:
-   ```bash
-   chmod +x scripts/setup-github-secrets.sh
-   ./scripts/setup-github-secrets.sh
-   ```
-
-4. Follow the prompts to enter:
-   - Firebase configuration
-   - Firebase service account key
-   - Expo token
-
-### Required Secrets
-
-The following secrets need to be configured in your GitHub repository:
-
-- `FIREBASE_API_KEY`: Firebase API key
-- `FIREBASE_AUTH_DOMAIN`: Firebase auth domain
-- `FIREBASE_PROJECT_ID`: Firebase project ID
-- `FIREBASE_STORAGE_BUCKET`: Firebase storage bucket
-- `FIREBASE_MESSAGING_SENDER_ID`: Firebase messaging sender ID
-- `FIREBASE_APP_ID`: Firebase app ID
-- `FIREBASE_SERVICE_ACCOUNT`: Firebase service account JSON
-- `EXPO_TOKEN`: Expo access token
-
-### Branch Strategy
-
-- `main`: Production branch, triggers full deployment
-- `develop`: Development branch, runs tests and builds
-- Feature branches: Run tests only
-
-### Manual Triggers
-
-You can manually trigger the workflow from the GitHub Actions tab:
-1. Go to the "Actions" tab in your repository
-2. Select the "CI/CD Pipeline" workflow
-3. Click "Run workflow"
-4. Select the branch and click "Run workflow" #   s m a r t - a c c o u n t i n g - a p p  
- 
+* React, React Native, Firebase
+* Expo, MUI, and all supporting open-source contributors

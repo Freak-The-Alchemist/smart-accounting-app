@@ -1,203 +1,207 @@
+import { CurrencyCode, SUPPORTED_CURRENCIES } from './Currency';
+
 export enum TaxType {
   INCOME = 'INCOME',
-  VAT = 'VAT',
-  CORPORATE = 'CORPORATE',
-  PROPERTY = 'PROPERTY',
   SALES = 'SALES',
-  CUSTOM = 'CUSTOM',
+  VAT = 'VAT',
+  GST = 'GST',
+  CUSTOMS = 'CUSTOMS',
+  EXCISE = 'EXCISE',
+  PROPERTY = 'PROPERTY',
+  PAYROLL = 'PAYROLL',
+  OTHER = 'OTHER',
 }
 
 export enum TaxStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-  CANCELLED = 'CANCELLED',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum TaxCalculationType {
+  PERCENTAGE = 'PERCENTAGE',
+  FIXED = 'FIXED',
+  COMPOUND = 'COMPOUND',
+  TIERED = 'TIERED',
+}
+
+export interface TaxRate {
+  id: string;
+  rate: number;
+  type: TaxCalculationType;
+  effectiveFrom: Date;
+  effectiveTo?: Date;
+  minimumAmount?: number;
+  maximumAmount?: number;
+  currency: CurrencyCode;
+  metadata?: Record<string, any>;
+}
+
+export interface TaxExemption {
+  id: string;
+  type: string;
+  reason: string;
+  documentReference?: string;
+  approvedBy: string;
+  approvedAt: Date;
+  validFrom: Date;
+  validTo?: Date;
+  metadata?: Record<string, any>;
+}
+
+export interface TaxPayment {
+  id: string;
+  amount: number;
+  currency: CurrencyCode;
+  dueDate: Date;
+  paidDate?: Date;
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  reference?: string;
+  notes?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface Tax {
   id: string;
+  code: string;
+  name: string;
   type: TaxType;
-  amount: number;
-  description: string;
-  dueDate: Date;
-  category: string;
   status: TaxStatus;
+  organizationId: string;
+  description?: string;
+  rates: TaxRate[];
+  exemptions?: TaxExemption[];
+  payments?: TaxPayment[];
+  settings?: {
+    isCompound: boolean;
+    isInclusive: boolean;
+    roundingMethod: 'UP' | 'DOWN' | 'NEAREST';
+    reportingFrequency: 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+    dueDateOffset: number;
+    latePaymentPenalty?: {
+      rate: number;
+      type: 'PERCENTAGE' | 'FIXED';
+    };
+  };
   metadata?: Record<string, any>;
+  createdBy: string;
+  updatedBy: string;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface TaxRate {
-  minIncome: number;
-  maxIncome: number;
-  rate: number;
-}
-
-export interface TaxCalculation {
-  income: number;
-  taxYear: string;
-  taxAmount: number;
-  taxRate: number;
-  taxBrackets: TaxRate[];
+  lastCalculatedAt?: Date;
+  lastPaidAt?: Date;
 }
 
 export interface TaxSummary {
-  totalTaxes: number;
-  paidTaxes: number;
-  pendingTaxes: number;
-  taxesByCategory: Record<string, number>;
-  taxesByType: Record<TaxType, number>;
-}
-
-export type TaxRateType = 
-  | 'percentage'
-  | 'fixed';
-
-export interface TaxRate {
-  id: string;
-  type: TaxType;
-  name: string;
-  rateType: TaxRateType;
-  rate: number;
-  effectiveFrom: Date;
-  effectiveTo?: Date;
-  isActive: boolean;
-  organizationId: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface TaxTransaction {
-  id: string;
-  type: TaxType;
-  amount: number;
-  taxAmount: number;
-  currency: string;
-  date: Date;
-  status: 'pending' | 'paid' | 'overdue';
-  dueDate: Date;
-  paidDate?: Date;
-  reference?: string;
-  description?: string;
-  organizationId: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  metadata?: {
-    source?: string;
-    attachments?: string[];
-    notes?: string;
+  total: number;
+  byType: {
+    [type in TaxType]: number;
+  };
+  byStatus: {
+    [status in TaxStatus]: number;
+  };
+  byCurrency: {
+    [currency in CurrencyCode]: number;
+  };
+  byPeriod: {
+    daily: Record<string, number>;
+    weekly: Record<string, number>;
+    monthly: Record<string, number>;
+    yearly: Record<string, number>;
+  };
+  amounts: {
+    total: number;
+    average: number;
+    minimum: number;
+    maximum: number;
+    byType: Record<TaxType, number>;
+    byStatus: Record<TaxStatus, number>;
+  };
+  performance: {
+    complianceRate: number;
+    paymentRate: number;
+    exemptionRate: number;
+    averagePaymentTime: number;
   };
 }
 
-export interface TaxReport {
-  id: string;
-  type: TaxType;
-  period: {
-    start: Date;
-    end: Date;
-  };
-  totalAmount: number;
-  totalTax: number;
-  currency: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  submittedAt?: Date;
-  approvedAt?: Date;
-  rejectedAt?: Date;
-  rejectionReason?: string;
-  organizationId: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  transactions: TaxTransaction[];
-  metadata?: {
-    reportNumber?: string;
-    taxAuthority?: string;
-    attachments?: string[];
-    notes?: string;
-  };
+export interface TaxFilters {
+  type?: TaxType;
+  status?: TaxStatus;
+  currency?: CurrencyCode;
+  startDate?: Date;
+  endDate?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  search?: string;
 }
 
 // Validation rules
-export const taxRateValidationRules = {
-  type: {
+export const taxValidationRules = {
+  code: {
     required: true,
-    enum: ['income_tax', 'vat', 'withholding_tax', 'payroll_tax', 'custom']
+    minLength: 3,
+    maxLength: 20,
+    pattern: /^[A-Z0-9_-]+$/
   },
   name: {
     required: true,
     minLength: 3,
     maxLength: 100
   },
-  rateType: {
-    required: true,
-    enum: ['percentage', 'fixed']
-  },
-  rate: {
-    required: true,
-    validate: (value: number) => value >= 0,
-    message: 'Rate must be a non-negative number'
-  },
-  effectiveFrom: {
-    required: true
-  }
-};
-
-export const taxTransactionValidationRules = {
   type: {
     required: true,
-    enum: ['income_tax', 'vat', 'withholding_tax', 'payroll_tax', 'custom']
+    enum: Object.values(TaxType)
   },
-  amount: {
+  status: {
     required: true,
-    validate: (value: number) => value > 0,
-    message: 'Amount must be greater than 0'
+    enum: Object.values(TaxStatus)
   },
-  taxAmount: {
+  rates: {
     required: true,
-    validate: (value: number) => value >= 0,
-    message: 'Tax amount must be a non-negative number'
+    validate: (rates: TaxRate[]) => {
+      return rates.length > 0 && 
+             rates.every(rate => 
+               rate.id && 
+               rate.rate >= 0 && 
+               rate.type && 
+               rate.effectiveFrom && 
+               rate.currency
+             );
+    },
+    message: 'Invalid tax rates configuration'
   },
-  currency: {
-    required: true,
-    pattern: /^[A-Z]{3}$/,
-    message: 'Currency must be a 3-letter code (e.g., KES)'
+  exemptions: {
+    validate: (exemptions: TaxExemption[]) => {
+      return exemptions.every(exemption => 
+        exemption.id && 
+        exemption.type && 
+        exemption.reason && 
+        exemption.approvedBy && 
+        exemption.approvedAt && 
+        exemption.validFrom
+      );
+    },
+    message: 'Invalid tax exemptions configuration'
   },
-  date: {
-    required: true
+  payments: {
+    validate: (payments: TaxPayment[]) => {
+      return payments.every(payment => 
+        payment.id && 
+        payment.amount > 0 && 
+        payment.currency && 
+        payment.dueDate && 
+        payment.status
+      );
+    },
+    message: 'Invalid tax payments configuration'
   },
-  dueDate: {
-    required: true
-  }
-};
-
-export const taxReportValidationRules = {
-  type: {
-    required: true,
-    enum: ['income_tax', 'vat', 'withholding_tax', 'payroll_tax', 'custom']
-  },
-  period: {
-    required: true,
-    validate: (value: { start: Date; end: Date }) => 
-      value.start instanceof Date && 
-      value.end instanceof Date && 
-      value.start <= value.end,
-    message: 'Period must have valid start and end dates'
-  },
-  totalAmount: {
-    required: true,
-    validate: (value: number) => value >= 0,
-    message: 'Total amount must be a non-negative number'
-  },
-  totalTax: {
-    required: true,
-    validate: (value: number) => value >= 0,
-    message: 'Total tax must be a non-negative number'
-  },
-  currency: {
-    required: true,
-    pattern: /^[A-Z]{3}$/,
-    message: 'Currency must be a 3-letter code (e.g., KES)'
+  settings: {
+    validate: (settings: Tax['settings']) => {
+      if (!settings) return true;
+      return settings.reportingFrequency && 
+             settings.dueDateOffset >= 0;
+    },
+    message: 'Invalid tax settings configuration'
   }
 }; 

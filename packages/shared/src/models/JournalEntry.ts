@@ -1,36 +1,72 @@
 import { Timestamp } from 'firebase/firestore';
 import { Account } from './Account';
+import { Currency } from './Currency';
 
-export type EntryType = 'debit' | 'credit';
+export enum JournalEntryType {
+  DEBIT = 'DEBIT',
+  CREDIT = 'CREDIT',
+}
+
+export enum JournalEntryStatus {
+  DRAFT = 'DRAFT',
+  POSTED = 'POSTED',
+  VOID = 'VOID',
+}
 
 export interface JournalEntryLine {
+  id: string;
   accountId: string;
-  account?: Account;  // Populated when fetching
-  type: EntryType;
+  type: JournalEntryType;
   amount: number;
-  currency: string;
+  currency: Currency;
   description?: string;
+  reference?: string;
 }
 
 export interface JournalEntry {
   id: string;
-  date: Timestamp;
-  reference: string;        // Transaction reference number
-  description: string;
+  number: string;
+  date: Date;
+  type: JournalEntryType;
+  status: JournalEntryStatus;
   lines: JournalEntryLine[];
-  totalAmount: number;
-  currency: string;
-  status: 'draft' | 'posted' | 'void';
-  type: 'regular' | 'adjustment' | 'closing';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  total: number;
+  currency: Currency;
+  description?: string;
+  reference?: string;
+  attachments?: string[];
   createdBy: string;
-  organizationId: string;
-  metadata?: {
-    source?: string;        // e.g., 'manual', 'ocr', 'voice'
-    attachments?: string[]; // URLs to attached documents
-    notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  postedAt?: Date;
+  voidedAt?: Date;
+}
+
+export interface JournalEntrySummary {
+  total: number;
+  byStatus: {
+    [status in JournalEntryStatus]: number;
   };
+  byType: {
+    [type in JournalEntryType]: number;
+  };
+  byMonth: {
+    [month: string]: {
+      total: number;
+      count: number;
+    };
+  };
+}
+
+export interface JournalEntryFilters {
+  status?: JournalEntryStatus;
+  type?: JournalEntryType;
+  startDate?: Date;
+  endDate?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  currency?: Currency;
+  search?: string;
 }
 
 // Validation rules
