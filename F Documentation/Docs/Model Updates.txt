@@ -1,0 +1,1024 @@
+I've now updated three key models in the system:
+
+1. Webhook model:
+- Added new webhook events for subscriptions and bank reconciliations
+- Enhanced error details in WebhookDelivery
+- Added averageLatency to deliveryStats
+- Added date range filters
+- Added validation rules for webhook creation
+
+2. APIKey model:
+- Enhanced APIKeyScope with expiration and allowed operations/endpoints
+- Added revocation tracking (revokedBy, revokedReason)
+- Added detailed usage statistics
+- Added validation rules for API key creation
+- Added date range filters
+
+3. Integration model:
+- Added new integration types (INVENTORY, SHIPPING)
+- Added CONFIGURING status
+- Enhanced credentials with OAuth support
+- Added sync configuration options
+- Added IntegrationSync interface for tracking sync operations
+- Added sync history and statistics
+- Added validation rules for integration creation
+- Added date range filters
+
+These changes improve the models by:
+1. Adding more comprehensive tracking and monitoring capabilities
+2. Enhancing security and validation
+3. Supporting more integration scenarios
+4. Adding better error handling and debugging information
+5. Improving data consistency with validation rules
+
+
+Ran tool
+
+I've now updated the Settings model with significant improvements:
+
+1. Enhanced Notification Settings:
+- Added NotificationChannel and NotificationFrequency enums
+- Restructured channels to support multiple notification types
+- Added scheduling and quiet hours preferences
+- Added digest notification support
+
+2. Improved Security Settings:
+- Added backup codes for 2FA
+- Added lastVerified timestamp
+- Enhanced password policy with preventReuse
+- Added whitelistOnly option for IP restrictions
+- Added login attempts tracking and lockout configuration
+
+3. Enhanced Display Settings:
+- Added dashboard configuration (layout, widgets, refresh)
+- Added table settings (pagination, sorting, display options)
+
+4. Expanded Integration Settings:
+- Added autoReconcile for bank accounts
+- Added syncFrequency and dataRetention
+- Added defaultProvider and supportedCurrencies for payments
+- Added inventory management settings
+- Added autoCalculate and filingReminders for tax services
+
+5. Added Backup Settings:
+- Added frequency and retention policies
+- Added compression and encryption options
+- Added storage configuration
+- Added scheduling options
+
+6. Added Validation Rules:
+- Added validation for notification channels
+- Added security settings validation
+- Added display settings validation
+
+7. Enhanced Summary and Filters:
+- Added currency and integration statistics
+- Added more filter options for searching settings
+
+These changes make the Settings model more comprehensive and better suited for a modern accounting application. 
+
+
+Ran Tool
+
+
+I've updated the Task model with several improvements:
+
+1. Enhanced Task Status and Types:
+   - Added `BLOCKED` and `ON_HOLD` to TaskStatus
+   - Added `TAX`, `AUDIT`, and `COMPLIANCE` to TaskType
+
+2. Improved TaskAssignee:
+   - Added status tracking (pending/accepted/rejected)
+   - Added notes field
+
+3. Enhanced TaskComment:
+   - Added attachments support
+   - Added mentions support
+   - Added timestamps
+
+4. New Interfaces:
+   - `TaskChecklist`: For managing task checklists with items
+   - `TaskDependency`: For tracking task dependencies
+   - `TaskTimeTracking`: For tracking time spent on tasks
+
+5. Enhanced Task Interface:
+   - Added startDate
+   - Improved attachments structure
+   - Added tags and labels
+   - Added time tracking fields
+   - Added progress tracking
+   - Added parent/child task relationships
+
+6. Enhanced TaskSummary:
+   - Added time tracking statistics
+   - Added completion metrics
+   - Added performance tracking
+
+7. Added Validation Rules:
+   - Title validation
+   - Type validation
+   - Priority validation
+   - Status validation
+   - Due date validation
+   - Assignee validation
+
+These changes make the Task model more comprehensive and suitable for a modern accounting application.
+
+Ran Tool
+
+I've updated the Report model with several significant improvements:
+
+1. Enhanced Report Types and Formats:
+   - Added `PROFIT_LOSS` to ReportType
+   - Added `HTML` to ReportFormat
+   - Added new ReportStatus enum for better state tracking
+
+2. New Interfaces:
+   - `ReportFilter`: For detailed filtering capabilities
+   - `ReportColumn`: For column configuration and formatting
+   - `ReportSchedule`: For automated report generation
+   - `ReportTemplate`: For reusable report configurations
+
+3. Enhanced Report Interface:
+   - Added description field
+   - Added status tracking
+   - Added template support
+   - Added detailed filters and columns
+   - Added scheduling capabilities
+   - Added file size tracking
+   - Added generation and expiration timestamps
+   - Added error tracking
+
+4. Improved ReportSummary:
+   - Added status tracking
+   - Added storage statistics
+   - Added generation performance metrics
+   - Added success rate tracking
+
+5. Enhanced ReportFilters:
+   - Added status filtering
+   - Removed currency dependency
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Format validation
+   - Status validation
+   - Filter validation
+   - Column validation
+
+These changes make the Report model more comprehensive and suitable for a modern accounting application, with better support for:
+- Automated report generation
+- Template-based reports
+- Flexible filtering and column configuration
+- Performance tracking
+- Error handling
+- File management
+
+
+Let's continue by fixing the Budget model to make it more comprehensive and better structured:
+
+
+
+I've updated the Budget model with several significant improvements:
+
+1. Enhanced Budget Types and Status:
+   - Reorganized BudgetType to include OPERATING, CAPITAL, CASH_FLOW, PROJECT, DEPARTMENT, and MASTER
+   - Added CANCELLED to BudgetStatus
+   - Created separate BudgetPeriod enum for better period management
+
+2. New Interfaces:
+   - `BudgetCategory`: For organizing budget items hierarchically
+   - `BudgetLineItem`: For detailed budget entries with allocation and adjustments
+   - `BudgetApproval`: For multi-level budget approval workflow
+   - `BudgetVariance`: For tracking and analyzing budget variances
+
+3. Enhanced Budget Interface:
+   - Added description field
+   - Improved period structure
+   - Added categories and line items
+   - Added approval workflow
+   - Added variance tracking
+   - Added attachments support
+   - Renamed totalBudget to totalPlanned for clarity
+
+4. Improved BudgetSummary:
+   - Added period-based statistics
+   - Added detailed financial tracking
+   - Added performance metrics
+   - Added variance analysis
+   - Added trend tracking
+
+5. Enhanced BudgetFilters:
+   - Added period filtering
+   - Added category filtering
+   - Removed currency dependency
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Period validation
+   - Line item validation
+
+These changes make the Budget model more comprehensive and suitable for a modern accounting application, with better support for:
+- Hierarchical budget organization
+- Multi-level approvals
+- Variance analysis
+- Performance tracking
+- Flexible period management
+- Detailed financial reporting
+
+Let's continue by fixing the Tax model to make it more comprehensive and better structured:
+
+
+
+I've updated the Tax model with several significant improvements:
+
+1. Enhanced Tax Types and Status:
+   - Added GST, CUSTOMS, and EXCISE to TaxType
+   - Reorganized TaxStatus to ACTIVE, INACTIVE, ARCHIVED
+   - Added TaxFilingFrequency enum for better filing management
+
+2. New Interfaces:
+   - `TaxRate`: For managing tax rates with conditions and effective dates
+   - `TaxJurisdiction`: For handling different tax jurisdictions and their requirements
+   - `TaxExemption`: For managing tax exemptions with conditions and documentation
+   - `TaxFiling`: For tracking tax filings and payments
+
+3. Enhanced Tax Interface:
+   - Added name field
+   - Added jurisdiction management
+   - Added rates and exemptions
+   - Added filings tracking
+   - Added tax calculation settings
+   - Improved metadata handling
+
+4. Improved TaxSummary:
+   - Added jurisdiction-based statistics
+   - Added financial tracking
+   - Added compliance metrics
+   - Added filing status tracking
+   - Added processing time metrics
+
+5. Enhanced TaxFilters:
+   - Added jurisdiction filtering
+   - Simplified date range filtering
+   - Removed currency dependency
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Jurisdiction validation
+   - Rate validation
+
+These changes make the Tax model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple tax jurisdictions
+- Complex tax rates and exemptions
+- Tax filing management
+- Compliance tracking
+- Financial reporting
+- Tax calculation settings
+
+
+
+Let's continue by fixing the Audit model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Audit model with several key features:
+
+1. Enhanced Enums:
+   - `AuditType`: INTERNAL, EXTERNAL, COMPLIANCE, OPERATIONAL, FINANCIAL, IT, SECURITY, CUSTOM
+   - `AuditStatus`: PLANNED, IN_PROGRESS, COMPLETED, CANCELLED, ON_HOLD
+   - `AuditPriority`: LOW, MEDIUM, HIGH, CRITICAL
+   - `AuditFindingSeverity`: LOW, MEDIUM, HIGH, CRITICAL
+
+2. New Interfaces:
+   - `AuditScope`: For defining audit boundaries and resources
+   - `AuditTeam`: For managing audit team members and roles
+   - `AuditFinding`: For tracking audit findings with evidence and recommendations
+   - `AuditChecklist`: For structured audit procedures
+
+3. Enhanced Audit Interface:
+   - Added priority tracking
+   - Added scope management
+   - Added team management
+   - Added findings tracking
+   - Added checklist support
+   - Added milestone tracking
+   - Added attachments and reports
+
+4. Improved AuditSummary:
+   - Added priority-based statistics
+   - Added findings analysis
+   - Added performance metrics
+   - Added team efficiency tracking
+
+5. Enhanced AuditFilters:
+   - Added priority filtering
+   - Added team member filtering
+   - Added date range filtering
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Priority validation
+   - Scope validation
+   - Team validation
+
+These changes make the Audit model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple audit types
+- Team collaboration
+- Finding management
+- Evidence tracking
+- Performance monitoring
+- Compliance reporting
+
+
+Let's continue by fixing the Compliance model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Compliance model with several key features:
+
+1. Enhanced Enums:
+   - `ComplianceType`: REGULATORY, INDUSTRY, INTERNAL, LEGAL, ENVIRONMENTAL, HEALTH_SAFETY, DATA_PRIVACY, CUSTOM
+   - `ComplianceStatus`: ACTIVE, PENDING, EXPIRED, SUSPENDED, ARCHIVED
+   - `CompliancePriority`: LOW, MEDIUM, HIGH, CRITICAL
+
+2. New Interfaces:
+   - `ComplianceRequirement`: For managing compliance requirements with controls and documentation
+   - `ComplianceAssessment`: For tracking compliance assessments and findings
+   - `ComplianceDocument`: For managing compliance-related documents with versioning and permissions
+
+3. Enhanced Compliance Interface:
+   - Added priority tracking
+   - Added requirements management
+   - Added assessment tracking
+   - Added document management
+   - Added scheduling with reminders
+   - Added contact management
+
+4. Improved ComplianceSummary:
+   - Added priority-based statistics
+   - Added assessment analysis
+   - Added document tracking
+   - Added compliance metrics
+   - Added expiration tracking
+
+5. Enhanced ComplianceFilters:
+   - Added priority filtering
+   - Added requirement filtering
+   - Added date range filtering
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Priority validation
+   - Requirements validation
+   - Schedule validation
+
+These changes make the Compliance model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple compliance types
+- Requirement management
+- Assessment tracking
+- Document control
+- Compliance monitoring
+- Regulatory reporting
+
+
+
+Let's continue by fixing the Document model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Document model with several key features:
+
+1. Enhanced Enums:
+   - `DocumentType`: INVOICE, RECEIPT, STATEMENT, CONTRACT, AGREEMENT, REPORT, CERTIFICATE, LICENSE, PERMIT, POLICY, PROCEDURE, FORM, TEMPLATE, OTHER
+   - `DocumentStatus`: DRAFT, PENDING_REVIEW, APPROVED, REJECTED, ARCHIVED, EXPIRED
+   - `DocumentCategory`: FINANCIAL, LEGAL, OPERATIONAL, COMPLIANCE, HR, IT, MARKETING, SALES, CUSTOM
+
+2. New Interfaces:
+   - `DocumentVersion`: For managing document versions with content and approval tracking
+   - `DocumentReview`: For handling document review workflows
+   - `DocumentAccess`: For managing document permissions and access restrictions
+
+3. Enhanced Document Interface:
+   - Added version control
+   - Added review workflow
+   - Added access control
+   - Added related documents
+   - Added metadata with retention and expiry
+   - Added tagging support
+
+4. Improved DocumentSummary:
+   - Added category-based statistics
+   - Added storage metrics
+   - Added version tracking
+   - Added review statistics
+   - Added performance metrics
+
+5. Enhanced DocumentFilters:
+   - Added category filtering
+   - Added author filtering
+   - Added reviewer filtering
+   - Added tag filtering
+   - Added date range filtering
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Category validation
+   - Status validation
+   - Version validation
+   - Access validation
+
+These changes make the Document model more comprehensive and suitable for a modern accounting application, with better support for:
+- Document versioning
+- Review workflows
+- Access control
+- Document relationships
+- Retention management
+- Storage tracking
+
+
+
+Let's continue by fixing the Notification model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Notification model with several key features:
+
+1. Enhanced Enums:
+   - `NotificationType`: SYSTEM, ALERT, REMINDER, APPROVAL, REPORT, TRANSACTION, DOCUMENT, TASK, COMPLIANCE, AUDIT, CUSTOM
+   - `NotificationStatus`: PENDING, SENT, DELIVERED, READ, FAILED, CANCELLED
+   - `NotificationPriority`: LOW, MEDIUM, HIGH, URGENT
+   - `NotificationChannel`: EMAIL, SMS, PUSH, IN_APP, WEBHOOK, SLACK, TEAMS, CUSTOM
+
+2. New Interfaces:
+   - `NotificationTemplate`: For managing notification templates with multi-channel support
+   - `NotificationRecipient`: For handling recipient preferences and delivery channels
+   - `NotificationDelivery`: For tracking delivery status and errors across channels
+
+3. Enhanced Notification Interface:
+   - Added template-based notifications
+   - Added multi-recipient support
+   - Added multi-channel delivery
+   - Added scheduling and retry logic
+   - Added attachment support
+   - Added delivery tracking
+
+4. Improved NotificationSummary:
+   - Added channel-based statistics
+   - Added delivery metrics
+   - Added performance tracking
+   - Added time-based analytics
+   - Added success/failure rates
+
+5. Enhanced NotificationFilters:
+   - Added channel filtering
+   - Added recipient filtering
+   - Added date range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Type validation
+   - Priority validation
+   - Status validation
+   - Template validation
+   - Recipients validation
+   - Content validation
+
+These changes make the Notification model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multi-channel notifications
+- Template management
+- Delivery tracking
+- Performance monitoring
+- Recipient preferences
+- Scheduling and retries
+
+
+
+Let's continue by fixing the Workflow model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Workflow model with several key features:
+
+1. Enhanced Enums:
+   - `WorkflowType`: APPROVAL, REVIEW, ONBOARDING, OFFBOARDING, PURCHASE, EXPENSE, INVOICE, PAYMENT, COMPLIANCE, AUDIT, CUSTOM
+   - `WorkflowStatus`: DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED, ARCHIVED
+   - `WorkflowStepType`: TASK, APPROVAL, REVIEW, NOTIFICATION, CONDITION, INTEGRATION, CUSTOM
+   - `WorkflowStepStatus`: PENDING, IN_PROGRESS, COMPLETED, REJECTED, SKIPPED, FAILED
+
+2. New Interfaces:
+   - `WorkflowStep`: For managing workflow steps with conditions and notifications
+   - `WorkflowInstance`: For tracking workflow execution and history
+   - Enhanced `Workflow` interface with triggers and settings
+
+3. Enhanced Workflow Interface:
+   - Added version control
+   - Added step management
+   - Added trigger configuration
+   - Added notification rules
+   - Added workflow settings
+   - Added metadata support
+
+4. Improved WorkflowSummary:
+   - Added instance tracking
+   - Added step statistics
+   - Added performance metrics
+   - Added time-based analytics
+   - Added completion rates
+
+5. Enhanced WorkflowFilters:
+   - Added type filtering
+   - Added status filtering
+   - Added date range filtering
+   - Added creator filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Steps validation
+   - Triggers validation
+
+These changes make the Workflow model more comprehensive and suitable for a modern accounting application, with better support for:
+- Complex workflows
+- Step management
+- Conditional logic
+- Notifications
+- Performance tracking
+- History tracking
+
+
+Let's continue by fixing the Role model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Role model with several key features:
+
+1. Enhanced Enums:
+   - `RoleType`: SYSTEM, ORGANIZATION, DEPARTMENT, PROJECT, CUSTOM
+   - `RoleStatus`: ACTIVE, INACTIVE, ARCHIVED
+   - `PermissionScope`: GLOBAL, ORGANIZATION, DEPARTMENT, PROJECT, USER
+
+2. New Interfaces:
+   - `RolePermission`: For managing granular permissions with conditions
+   - `RoleAssignment`: For tracking role assignments with expiration
+   - Enhanced `Role` interface with inheritance and restrictions
+
+3. Enhanced Role Interface:
+   - Added permission management
+   - Added assignment tracking
+   - Added role inheritance
+   - Added access restrictions
+   - Added time-based restrictions
+   - Added location restrictions
+
+4. Improved RoleSummary:
+   - Added permission statistics
+   - Added assignment tracking
+   - Added usage metrics
+   - Added resource analysis
+   - Added action analysis
+
+5. Enhanced RoleFilters:
+   - Added resource filtering
+   - Added scope filtering
+   - Added date range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Permissions validation
+   - Assignments validation
+
+These changes make the Role model more comprehensive and suitable for a modern accounting application, with better support for:
+- Granular permissions
+- Role inheritance
+- Access control
+- Time restrictions
+- Location restrictions
+- Assignment tracking
+
+
+
+Let's continue by fixing the User model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive User model with several key features:
+
+1. Enhanced Enums:
+   - `UserStatus`: ACTIVE, INACTIVE, SUSPENDED, PENDING, ARCHIVED
+   - `UserType`: ADMIN, STAFF, CLIENT, VENDOR, PARTNER, CUSTOM
+   - `UserRole`: SUPER_ADMIN, ADMIN, MANAGER, USER, VIEWER, CUSTOM
+
+2. New Interfaces:
+   - `UserProfile`: For managing user profile information and preferences
+   - `UserSecurity`: For handling security-related features and session management
+   - Enhanced `User` interface with settings and activity tracking
+
+3. Enhanced User Interface:
+   - Added profile management
+   - Added security features
+   - Added notification settings
+   - Added privacy settings
+   - Added integration settings
+   - Added activity tracking
+
+4. Improved UserSummary:
+   - Added security statistics
+   - Added activity metrics
+   - Added preference analysis
+   - Added session tracking
+   - Added login distribution
+
+5. Enhanced UserFilters:
+   - Added type filtering
+   - Added department filtering
+   - Added date range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Username validation
+   - Email validation
+   - Status validation
+   - Type validation
+   - Role validation
+   - Profile validation
+   - Security validation
+
+These changes make the User model more comprehensive and suitable for a modern accounting application, with better support for:
+- User profile management
+- Security features
+- Session tracking
+- Activity monitoring
+- Preference management
+- Integration settings
+
+
+
+Let's continue by fixing the Organization model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Organization model with several key features:
+
+1. Enhanced Enums:
+   - `OrganizationType`: CORPORATION, PARTNERSHIP, SOLE_PROPRIETORSHIP, LLC, NON_PROFIT, GOVERNMENT, CUSTOM
+   - `OrganizationStatus`: ACTIVE, INACTIVE, SUSPENDED, PENDING, ARCHIVED
+   - `OrganizationSize`: MICRO, SMALL, MEDIUM, LARGE, ENTERPRISE
+
+2. Improved Interfaces:
+   - `OrganizationAddress`: Enhanced with address types and primary flag
+   - `OrganizationContact`: Added title and role fields
+   - `OrganizationSettings`: Comprehensive settings for general, accounting, notifications, security, and integrations
+
+3. Enhanced Organization Interface:
+   - Added size classification
+   - Multiple addresses support
+   - Department management
+   - Enhanced logo handling
+   - Comprehensive settings structure
+   - Added updatedBy tracking
+
+4. Improved OrganizationSummary:
+   - Added size-based statistics
+   - Added user statistics
+   - Added activity metrics
+   - Added settings analysis
+   - Added transaction tracking
+
+5. Enhanced OrganizationFilters:
+   - Added size filtering
+   - Added date range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Name validation
+   - Type validation
+   - Status validation
+   - Size validation
+   - Address validation
+   - Contact validation
+   - Settings validation
+
+These changes make the Organization model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple organization types and sizes
+- Comprehensive address management
+- Detailed contact information
+- Advanced settings configuration
+- Department hierarchy
+- Security policies
+- Integration management
+
+
+
+Let's continue by fixing the Transaction model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Transaction model with several key features:
+
+1. Enhanced Enums:
+   - `TransactionType`: Added REFUND, PAYMENT, RECEIPT, JOURNAL, CUSTOM
+   - `TransactionStatus`: Added DRAFT, REVERSED, ARCHIVED
+   - Added new `TransactionCategory` enum for better categorization
+
+2. New Interfaces:
+   - `TransactionLine`: For detailed transaction line items with tax support
+   - `TransactionAttachment`: Enhanced with metadata and upload tracking
+   - `TransactionApproval`: For managing transaction approval workflows
+
+3. Enhanced Transaction Interface:
+   - Added organization ID
+   - Added reference number
+   - Added exchange rate support
+   - Added multi-line support
+   - Added approval workflow
+   - Added related transactions
+   - Added posting, voiding, and reversal tracking
+
+4. Improved TransactionSummary:
+   - Added period-based statistics
+   - Added amount statistics
+   - Added performance metrics
+   - Enhanced currency and category tracking
+
+5. Enhanced TransactionFilters:
+   - Added category filtering
+   - Added currency filtering
+   - Added amount range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Type validation
+   - Status validation
+   - Reference validation
+   - Date validation
+   - Amount validation
+   - Currency validation
+   - Line items validation
+   - Approvals validation
+
+
+The changes make the Transaction model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multi-line transactions
+- Tax handling
+- Approval workflows
+- Attachment management
+- Currency conversion
+- Performance tracking
+- Detailed reporting
+
+
+Let's continue by fixing the Account model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Account model with several key features:
+
+1. Enhanced Enums:
+   - Converted `AccountCategory` from type to enum for better type safety
+   - Added proper enum values for all account categories
+   - Maintained existing `AccountType` and `AccountStatus` enums
+
+2. New Interfaces:
+   - `AccountBalance`: Enhanced with period tracking and metadata
+   - `AccountTransaction`: For tracking individual transactions
+   - `AccountReconciliation`: For managing account reconciliations
+
+3. Enhanced Account Interface:
+   - Added balances array for historical balance tracking
+   - Added transactions array for transaction history
+   - Added reconciliations array for reconciliation history
+   - Added settings for account configuration
+   - Added lastReconciledAt and lastTransactionAt tracking
+   - Added updatedBy tracking
+
+4. Improved AccountSummary:
+   - Added category-based statistics
+   - Added balance statistics
+   - Added activity metrics
+   - Added performance metrics
+   - Enhanced currency tracking
+
+5. Enhanced AccountFilters:
+   - Added category filtering
+   - Added date range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Code validation with proper pattern
+   - Name validation
+   - Type validation
+   - Category validation
+   - Status validation
+   - Currency validation
+   - Balances validation
+   - Transactions validation
+   - Reconciliations validation
+
+These changes make the Account model more comprehensive and suitable for a modern accounting application, with better support for:
+- Historical balance tracking
+- Transaction history
+- Reconciliation management
+- Account settings
+- Performance monitoring
+- Compliance tracking
+- Detailed reporting
+
+
+
+Let's continue by fixing the Invoice model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Invoice model with several key features:
+
+1. Enhanced Enums:
+   - `InvoiceStatus`: Added PENDING, VIEWED, APPROVED, PARTIALLY_PAID, VOIDED, ARCHIVED
+   - Added new `InvoiceType` enum for better invoice categorization
+
+2. New Interfaces:
+   - `InvoiceItem`: Enhanced with currency, tax, and discount support
+   - `InvoicePayment`: For tracking individual payments
+   - `InvoiceAttachment`: For managing invoice attachments
+
+3. Enhanced Invoice Interface:
+   - Added type and status tracking
+   - Added organization and customer IDs
+   - Added exchange rate support
+   - Added detailed tax structure
+   - Added payment tracking
+   - Added recurring invoice support
+   - Added various timestamp tracking (sent, viewed, approved, paid, voided)
+
+4. Improved InvoiceSummary:
+   - Added type-based statistics
+   - Added period-based statistics
+   - Added amount statistics
+   - Added performance metrics
+   - Enhanced currency tracking
+
+5. Enhanced InvoiceFilters:
+   - Added type filtering
+   - Added currency filtering
+   - Added amount range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Number validation
+   - Type validation
+   - Status validation
+   - Date validation with due date check
+   - Currency validation
+   - Items validation
+   - Payments validation
+   - Recurring invoice validation
+
+These changes make the Invoice model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple invoice types
+- Detailed tax handling
+- Payment tracking
+- Recurring invoices
+- Attachment management
+- Performance monitoring
+- Detailed reporting
+
+
+
+
+Let's continue by fixing the Payment model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Payment model with several key features:
+
+1. Enhanced Enums:
+   - `PaymentMethod`: Added various payment methods like CASH, BANK_TRANSFER, CREDIT_CARD, etc.
+   - `PaymentStatus`: Added detailed statuses like PENDING, PROCESSING, COMPLETED, etc.
+   - `PaymentType`: Added different payment types like INVOICE, SUBSCRIPTION, REFUND, etc.
+
+2. New Interfaces:
+   - `PaymentTransaction`: For tracking individual payment transactions
+   - `PaymentRefund`: For managing refunds
+   - `PaymentReceipt`: For handling payment receipts
+
+3. Enhanced Payment Interface:
+   - Added payment number and type
+   - Added organization and customer IDs
+   - Added exchange rate support
+   - Added transaction tracking
+   - Added refund management
+   - Added receipt generation
+   - Added related payments tracking
+   - Added various timestamp tracking (processed, completed, failed, refunded, voided)
+
+4. Improved PaymentSummary:
+   - Added type-based statistics
+   - Added method-based statistics
+   - Added period-based statistics
+   - Added amount statistics
+   - Added performance metrics
+   - Enhanced currency tracking
+
+5. Enhanced PaymentFilters:
+   - Added type filtering
+   - Added method filtering
+   - Added currency filtering
+   - Added amount range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Number validation
+   - Type validation
+   - Status validation
+   - Method validation
+   - Amount validation
+   - Currency validation
+   - Transactions validation
+   - Refunds validation
+   - Receipts validation
+
+These changes make the Payment model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple payment methods
+- Transaction tracking
+- Refund management
+- Receipt generation
+- Currency conversion
+- Performance monitoring
+- Detailed reporting
+
+
+
+
+Let's continue by fixing the Tax model to make it more comprehensive and better structured:
+
+
+
+I've created a comprehensive Tax model with several key features:
+
+1. Enhanced Enums:
+   - `TaxType`: Added various tax types like INCOME, SALES, VAT, GST, etc.
+   - `TaxStatus`: Added statuses like ACTIVE, INACTIVE, ARCHIVED
+   - `TaxCalculationType`: Added calculation types like PERCENTAGE, FIXED, COMPOUND, TIERED
+
+2. New Interfaces:
+   - `TaxRate`: For managing tax rates with effective dates and currency
+   - `TaxExemption`: For handling tax exemptions with approval tracking
+   - `TaxPayment`: For tracking tax payments and their status
+
+3. Enhanced Tax Interface:
+   - Added tax code and description
+   - Added organization ID
+   - Added rate management
+   - Added exemption tracking
+   - Added payment tracking
+   - Added comprehensive settings
+   - Added various timestamp tracking (calculated, paid)
+
+4. Improved TaxSummary:
+   - Added type-based statistics
+   - Added currency-based statistics
+   - Added period-based statistics
+   - Added amount statistics
+   - Added performance metrics
+   - Enhanced compliance tracking
+
+5. Enhanced TaxFilters:
+   - Added type filtering
+   - Added currency filtering
+   - Added amount range filtering
+   - Added search functionality
+
+6. Added Validation Rules:
+   - Code validation
+   - Name validation
+   - Type validation
+   - Status validation
+   - Rates validation
+   - Exemptions validation
+   - Payments validation
+   - Settings validation
+
+These changes make the Tax model more comprehensive and suitable for a modern accounting application, with better support for:
+- Multiple tax types
+- Rate management
+- Exemption handling
+- Payment tracking
+- Currency conversion
+- Compliance monitoring
+- Detailed reporting
+

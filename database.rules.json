@@ -1,0 +1,172 @@
+{
+  "rules": {
+    "stations": {
+      "$stationId": {
+        ".read": "auth != null && (resource.data.managers[auth.uid] != null || resource.data.attendants[auth.uid] != null)",
+        ".write": "auth != null && resource.data.managers[auth.uid] != null",
+        
+        "shifts": {
+          "$shiftId": {
+            ".read": "auth != null && (resource.data.stationId == $stationId && (root.child('stations').child($stationId).child('managers').child(auth.uid).exists() || root.child('stations').child($stationId).child('attendants').child(auth.uid).exists()))",
+            ".write": "auth != null && (resource.data.stationId == $stationId && (root.child('stations').child($stationId).child('managers').child(auth.uid).exists() || (root.child('stations').child($stationId).child('attendants').child(auth.uid).exists() && !data.exists())))",
+            ".update": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()"
+          }
+        },
+        
+        "expenses": {
+          "$expenseId": {
+            ".read": "auth != null && resource.data.stationId == $stationId && (root.child('stations').child($stationId).child('managers').child(auth.uid).exists() || root.child('stations').child($stationId).child('attendants').child(auth.uid).exists())",
+            ".write": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()",
+            ".update": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()"
+          }
+        },
+        
+        "inventory": {
+          "$itemId": {
+            ".read": "auth != null && resource.data.stationId == $stationId && (root.child('stations').child($stationId).child('managers').child(auth.uid).exists() || root.child('stations').child($stationId).child('attendants').child(auth.uid).exists())",
+            ".write": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()",
+            ".update": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()"
+          }
+        },
+        
+        "reports": {
+          "$reportId": {
+            ".read": "auth != null && resource.data.stationId == $stationId && (root.child('stations').child($stationId).child('managers').child(auth.uid).exists() || root.child('stations').child($stationId).child('attendants').child(auth.uid).exists())",
+            ".write": "auth != null && resource.data.stationId == $stationId && root.child('stations').child($stationId).child('managers').child(auth.uid).exists()"
+          }
+        }
+      }
+    },
+    
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')",
+        "profile": {
+          ".validate": "newData.hasChildren(['email', 'role', 'createdAt'])"
+        },
+        "settings": {
+          ".validate": "newData.hasChildren(['twoFactorEnabled', 'lastLogin'])"
+        }
+      }
+    },
+    
+    "notifications": {
+      "$userId": {
+        "$notificationId": {
+          ".read": "auth != null && auth.uid == $userId",
+          ".write": "auth != null && auth.uid == $userId",
+          ".update": "auth != null && auth.uid == $userId"
+        }
+      }
+    },
+    
+    "transactions": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() in ['ADMIN', 'MANAGER', 'ATTENDANT'])",
+      "$transactionId": {
+        ".validate": "newData.hasChildren(['amount', 'type', 'timestamp', 'userId'])"
+      }
+    },
+    
+    "shifts": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() in ['ADMIN', 'MANAGER', 'ATTENDANT'])",
+      "$shiftId": {
+        ".validate": "newData.hasChildren(['startTime', 'endTime', 'userId', 'status'])"
+      }
+    },
+    
+    "expenses": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() in ['ADMIN', 'MANAGER', 'ACCOUNTANT'])",
+      "$expenseId": {
+        ".validate": "newData.hasChildren(['amount', 'category', 'timestamp', 'userId', 'status'])"
+      }
+    },
+    
+    "auditLogs": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() in ['ADMIN', 'MANAGER']",
+      ".write": "auth != null",
+      "$logId": {
+        ".validate": "newData.hasChildren(['action', 'timestamp', 'userId', 'details'])"
+      }
+    },
+    
+    "securityAlerts": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() in ['ADMIN', 'MANAGER']",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'",
+      "$alertId": {
+        ".validate": "newData.hasChildren(['type', 'severity', 'timestamp', 'status'])"
+      }
+    },
+    
+    "encryptionKeys": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'",
+      "$keyId": {
+        ".validate": "newData.hasChildren(['type', 'createdAt', 'isActive'])"
+      }
+    },
+    
+    "accounts": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "journalEntries": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() in ['admin', 'accountant']"
+    },
+    "bankReconciliations": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() in ['admin', 'accountant']",
+      "$reconciliationId": {
+        ".validate": "newData.hasChildren(['accountId', 'statementDate', 'openingBalance', 'closingBalance', 'statementLines', 'status', 'currency', 'organizationId', 'createdBy'])"
+      }
+    },
+    "taxRates": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() === 'admin'",
+      "$rateId": {
+        ".validate": "newData.hasChildren(['type', 'name', 'rateType', 'rate', 'effectiveFrom', 'isActive', 'organizationId', 'createdBy'])"
+      }
+    },
+    "taxTransactions": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() in ['admin', 'accountant']",
+      "$transactionId": {
+        ".validate": "newData.hasChildren(['type', 'amount', 'taxAmount', 'currency', 'date', 'status', 'dueDate', 'organizationId', 'createdBy'])"
+      }
+    },
+    "taxReports": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() in ['admin', 'accountant']",
+      "$reportId": {
+        ".validate": "newData.hasChildren(['type', 'period', 'totalAmount', 'totalTax', 'currency', 'status', 'organizationId', 'createdBy'])"
+      }
+    },
+    "auditTrails": {
+      ".read": "auth != null && root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('organizations').child(newData.child('organizationId').val()).child('members').child(auth.uid).child('role').val() === 'admin'",
+      "$auditId": {
+        ".validate": "newData.hasChildren(['action', 'entity', 'entityId', 'userId', 'userEmail', 'organizationId', 'timestamp'])"
+      }
+    },
+    "organizations": {
+      ".read": "auth != null && data.child('members').child(auth.uid).exists()",
+      ".write": "auth != null && (!data.exists() || data.child('members').child(auth.uid).child('role').val() === 'admin')",
+      "$organizationId": {
+        "members": {
+          ".read": "auth != null && root.child('organizations').child($organizationId).child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('organizations').child($organizationId).child('members').child(auth.uid).child('role').val() === 'admin'"
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('organizations').child(data.child('organizationId').val()).child('members').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

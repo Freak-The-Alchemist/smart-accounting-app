@@ -1,0 +1,244 @@
+Here's the **ready-to-use code** you can paste directly into Cursor to implement the key efficiency features. Each section includes clear instructions:
+
+---
+
+### **1. Auto-Categorization (Firebase Function)**
+**File:** `firebase/functions/src/auto-categorize.ts`  
+```typescript
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
+
+// Automatically categorizes new entries
+export const autoCategorize = functions.firestore
+  .document("users/{userId}/entries/{entryId}")
+  .onCreate(async (snapshot, context) => {
+    const entry = snapshot.data();
+    let category = "Other";
+
+    // Simple keyword matching (customize for your needs)
+    const description = entry.description.toLowerCase();
+    if (description.includes("fuel") || description.includes("petrol")) {
+      category = "Transport";
+    } else if (description.includes("tax") || description.includes("vat")) {
+      category = "Tax";
+    } else if (description.includes("food") || description.includes("lunch")) {
+      category = "Meals";
+    }
+
+    // Update the entry with the category
+    return snapshot.ref.update({ category });
+  });
+```
+
+**How to Deploy:**  
+1. Paste this in your Firebase Functions folder  
+2. Run:  
+```bash
+firebase deploy --only functions:autoCategorize
+```
+
+---
+
+### **2. Offline-First Setup (React Native)**
+**File:** `mobile/lib/database.js`  
+```javascript
+import { Database } from "@nozbe/watermelondb";
+import SQLiteAdapter from "@nozbe/watermelondb/adapters/sqlite";
+import { Entry } from "./models/Entry";
+
+// Database schema
+const adapter = new SQLiteAdapter({
+  dbName: "SmartAccountingDB",
+  schema: [
+    {
+      name: "entries",
+      columns: [
+        { name: "description", type: "string" },
+        { name: "amount", type: "number" },
+        { name: "category", type: "string", isOptional: true },
+        { name: "is_synced", type: "boolean", default: false },
+      ],
+    },
+  ],
+});
+
+export const database = new Database({
+  adapter,
+  modelClasses: [Entry],
+});
+
+// Sync with Firebase when online
+export const syncData = async (userId) => {
+  const unsyncedEntries = await database.collections.get("entries").query(
+    Q.where("is_synced", false)
+  ).fetch();
+
+  unsyncedEntries.forEach(async (entry) => {
+    await firestore().collection(`users/${userId}/entries`).add({
+      description: entry.description,
+      amount: entry.amount,
+      category: entry.category,
+    });
+    await entry.update(() => {
+      entry.isSynced = true;
+    });
+  });
+};
+```
+
+**Install Dependencies:**  
+```bash
+npm install @nozbe/watermelondb @nozbe/watermelondb-react
+```
+
+---
+
+### **3. Data Compression (Firestore Helper)**
+**File:** `shared/utils/compressData.ts`  
+```typescript
+// Compresses entries before saving to Firestore
+export const compressEntry = (entry: any) => ({
+  d: entry.description, // 'd' for description
+  a: entry.amount,     // 'a' for amount
+  c: entry.category,   // 'c' for category
+  t: Date.now(),       // 't' for timestamp
+});
+
+// Expands when reading
+export const expandEntry = (compressed: any) => ({
+  description: compressed.d,
+  amount: compressed.a,
+  category: compressed.c,
+  timestamp: new Date(compressed.t),
+});
+```
+
+**Usage Example:**  
+```typescript
+const compressed = compressEntry({
+  description: "Fuel purchase",
+  amount: 5000,
+  category: "Transport"
+});
+
+await firestore().doc("entries/123").set(compressed);
+```
+
+---
+
+### **4. Tiered Access Control (Firebase Rules)**
+**File:** `firebase/firestore.rules`  
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Free tier can only read
+    match /users/{userId}/entries/{entry} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.tier in ["pro", "business"];
+    }
+
+    // Business tier features
+    match /users/{userId}/reports/{report} {
+      allow read, write: if request.auth.token.tier == "business";
+    }
+  }
+}
+```
+
+**Deploy Rules:**  
+```bash
+firebase deploy --only firestore:rules
+```
+
+---
+
+### **6. Performance Optimizations**
+#### **A. Lazy Loading (React)**
+**File:** `web/src/components/LazyOCRScanner.tsx`  
+```tsx
+import React, { lazy, Suspense } from 'react';
+
+const OCRScanner = lazy(() => import('./OCRScanner'));
+
+export default function LazyOCRScanner() {
+  return (
+    <Suspense fallback={<div>Loading scanner...</div>}>
+      <OCRScanner />
+    </Suspense>
+  );
+}
+```
+
+#### **B. Caching (React Native)**
+**File:** `mobile/hooks/useCachedFirestore.ts`  
+```typescript
+import { useState, useEffect } from 'react';
+import { firestore } from '../firebase';
+
+export const useCachedFirestore = (path: string) => {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .doc(path)
+      .onSnapshot(
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          if (!snapshot.metadata.fromCache) {
+            setData(snapshot.data());
+          }
+        }
+      );
+
+    return () => unsubscribe();
+  }, [path]);
+
+  return data;
+};
+```
+
+---
+
+### **7. User Support Bot (Firebase Function)**
+**File:** `firebase/functions/src/supportBot.ts`  
+```typescript
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
+
+export const answerFAQ = functions.https.onCall(async (data, context) => {
+  const question = data.question.toLowerCase();
+  let answer = "I couldn't understand your question.";
+
+  // Simple Q&A pairs
+  const faqs: Record<string, string> = {
+    "how to export": "Go to Reports > Export as Excel",
+    "delete entry": "Swipe left on the entry to delete",
+    "categories": "We auto-categorize fuel, tax, meals, etc.",
+  };
+
+  for (const [key, value] of Object.entries(faqs)) {
+    if (question.includes(key)) {
+      answer = value;
+      break;
+    }
+  }
+
+  return { answer };
+});
+```
+
+---
+
+### **How to Implement in Cursor:**
+1. **For each file**:  
+   - Right-click in your project folder → "New File" → Paste the code  
+2. **Install dependencies** using the terminal commands provided  
+3. **Deploy Firebase functions/rules** with:  
+   ```bash
+   firebase deploy
+   ```

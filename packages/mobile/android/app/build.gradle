@@ -1,0 +1,152 @@
+apply plugin: "com.android.application"
+apply plugin: "com.google.gms.google-services"
+
+import com.android.build.OutputFile
+
+/**
+ * The react.gradle file registers a task for each build variant (e.g. bundleDebugJsAndAssets
+ * and bundleReleaseJsAndAssets).
+ * These basically call `react-native bundle` with the correct arguments during the Android build
+ * cycle. By default, bundleDebugJsAndAssets is skipped, as in debug/dev mode we prefer to load the
+ * bundle directly from the development server. Below you can see all the possible configurations
+ * and their defaults. If you decide to add a configuration block, make sure to add it before the
+ * `apply from: "../../node_modules/react-native/react.gradle"` line.
+ *
+ * project.ext.react = [
+ *   // the name of the generated asset file containing your JS bundle
+ *   bundleAssetName: "MyApplication.android.bundle",
+ *
+ *   // the entry file for bundle generation. If none specified and
+ *   // "index.android.js" exists, it will be used. Otherwise "index.js" is
+ *   // default. Can be overridden with ENTRY_FILE environment variable.
+ *   entryFile: file("../../index.android.js"),
+ *
+ *   // https://reactnative.dev/docs/performance#enable-the-hermes-engine
+ *   hermesCommand: "../../node_modules/react-native/sdks/hermesc/%OS-BIN%/hermesc",
+ *
+ *   // Flags to pass to the Hermes compiler.
+ *   // See https://hermesengine.dev/docs/flags/
+ *   hermesFlags: [],
+ *
+ *   // Hermes is now enabled by default. Disable by setting this flag to false.
+ *   // Upcoming versions of React Native may rely on getHermesCommand().
+ *   // To fix this, simply remove the `hermesEnabled` setting and let
+ *   // React Native use the default for the current version.
+ *   hermesEnabled: true
+ * ]
+ */
+
+project.ext.react = [
+    enableHermes: true,  // clean and rebuild if changing
+]
+
+apply from: "../../node_modules/react-native/react.gradle"
+
+/**
+ * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
+ */
+def enableProguardInReleaseBuilds = false
+
+/**
+ * The preferred build flavor of JavaScriptCore (JSC)
+ *
+ * For example, to use the international variant, you can use:
+ * `def jscFlavor = 'org.webkit:android-jsc-intl:+'`
+ *
+ * The international variant includes ICU i18n library and necessary data
+ * allowing to use e.g. `Date.toLocaleString` and `String.localeCompare` that
+ * give correct results when using with locales other than en-US.  Note that
+ * this variant is about 6MiB larger per architecture than default.
+ */
+def jscFlavor = 'org.webkit:android-jsc:+'
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+
+    compileSdkVersion rootProject.ext.compileSdkVersion
+
+    namespace "com.smartaccounting"
+    defaultConfig {
+        applicationId "com.smartaccounting"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+    }
+    splits {
+        abi {
+            reset()
+            enable enableSeparateBuildPerCPUArchitecture
+            universalApk false  // If true, also generate a universal APK
+            include "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
+        }
+    }
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // Caution! In production, you need to generate your own keystore file.
+            // see https://reactnative.dev/docs/signed-apk-android.
+            signingConfig signingConfigs.debug
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+
+    // applicationVariants are e.g. debug, release
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            // For each separate APK per architecture, set a unique version code as described here:
+            // https://developer.android.com/studio/build/configure-apk-splits.html
+            // Example: versionCode 1 will generate 1001 for armeabi-v7a, 1002 for x86, etc.
+            def versionCodes = ["armeabi-v7a": 1, "x86": 2, "arm64-v8a": 3, "x86_64": 4]
+            def abi = output.getFilter(OutputFile.ABI)
+            if (abi != null) {  // null for the universal-debug, universal-release variants
+                output.versionCodeOverride =
+                        defaultConfig.versionCode * 1000 + versionCodes.get(abi)
+            }
+
+        }
+    }
+}
+
+dependencies {
+    // The version of react-native is set by the React Native Gradle Plugin
+    implementation("com.facebook.react:react-android")
+
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
+
+    debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
+    debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
+        exclude group:'com.squareup.okhttp3', module:'okhttp'
+    }
+
+    debugImplementation("com.facebook.flipper:flipper-fresco-plugin:${FLIPPER_VERSION}")
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+
+    // Import the Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:33.13.0')
+
+    // Firebase dependencies (no versions needed when using BoM)
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-crashlytics'
+}
+
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project) 

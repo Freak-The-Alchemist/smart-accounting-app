@@ -1,0 +1,170 @@
+To tailor your Smart Accounting App specifically for a petrol station business, you'll want to adapt both features and data flows to match the specific operations of a petrol station. Here’s a targeted breakdown of how to modify your app accordingly:
+
+🔧 Customization Plan for Petrol Station Accounting
+1. Core Modules to Add
+These are specific to a petrol station:
+
+⛽ Fuel Sales Tracking
+Track liters dispensed per fuel type (e.g., petrol, diesel).
+
+Daily meter readings per pump.
+
+Price per liter (with automatic or manual update).
+
+🧾 Shift-based Cash Register
+Allow attendants to log their shift start/end.
+
+Capture sales per shift.
+
+Include cash, M-Pesa, and card payments.
+
+📦 Stock & Inventory
+Monitor fuel tank levels.
+
+Track oil, lubricants, and other shop items.
+
+Receive stock from suppliers and update inventory.
+
+📄 Expense Logging
+Quick input of daily operational expenses (e.g., power, water, security).
+
+Categorize by expense type.
+
+👥 Payroll Integration (Basic)
+Track employee attendance (check-in/out via app).
+
+Generate salary summaries from shift logs.
+
+2. Modify Data Models (in shared folder)
+You’ll need to update your shared TypeScript types to include:
+
+ts
+Copy
+Edit
+// shared/types.ts
+
+export interface FuelSale {
+  date: string;
+  pumpId: string;
+  fuelType: 'Petrol' | 'Diesel';
+  litersSold: number;
+  pricePerLiter: number;
+  totalAmount: number;
+  paymentMethod: 'Cash' | 'M-Pesa' | 'Card';
+  attendantId: string;
+}
+
+export interface Shift {
+  attendantId: string;
+  startTime: string;
+  endTime?: string;
+  sales: FuelSale[];
+  totalCash: number;
+  totalMpesas: number;
+}
+
+export interface StockItem {
+  itemId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  purchasePrice: number;
+  sellingPrice: number;
+}
+
+export interface Expense {
+  date: string;
+  category: string;
+  amount: number;
+  notes?: string;
+}
+3. Customize UI Components
+In your web/ and mobile/ folders:
+
+Dashboard Page:
+
+Show daily fuel sales.
+
+Top performing pumps.
+
+Payment summary (cash vs. digital).
+
+Stock alerts.
+
+Shift Log Page:
+
+Start/End shift.
+
+Attach fuel sales and cash received.
+
+Generate shift report.
+
+Expense Input Page:
+
+Categorized form (fuel delivery, utilities, security, etc.).
+
+Attach photos of receipts using OCR.
+
+Inventory Page:
+
+Add/view items (oil, water, tyres, etc.)
+
+Set low stock alert levels.
+
+4. Excel Report Export Customization
+Modify your Excel export logic to:
+
+Include daily/weekly/monthly fuel sales per pump.
+
+Expense vs. income summaries.
+
+Inventory usage.
+
+Profitability reports per shift or per fuel type.
+
+5. Voice/OCR Input Enhancements
+Use voice commands like:
+
+“Record 200 liters petrol at pump 2.”
+
+“Log security payment Ksh 3,000.”
+
+OCR can scan:
+
+Delivery notes.
+
+Cash deposit slips.
+
+M-Pesa transaction summaries.
+
+6. Realtime Sync + Firebase Usage
+Firebase Firestore can sync:
+
+Live fuel meter readings.
+
+Shift logs as they’re recorded.
+
+Stock updates across attendants and managers.
+
+Use Firebase Functions to:
+
+Auto-generate reports.
+
+Send daily summary via email/WhatsApp.
+
+Trigger low stock alerts.
+
+✅ Suggested Folder Addition
+Add to shared/constants/fuel.ts:
+
+ts
+Copy
+Edit
+export const FUEL_TYPES = ['Petrol', 'Diesel'] as const;
+And in firebase/ add Firestore rules tailored to:
+
+Restrict attendants to their own shift records.
+
+Admins see all data.
+
+Secure expense reports and sales entries.

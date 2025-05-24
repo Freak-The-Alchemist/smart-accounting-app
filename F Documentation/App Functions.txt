@@ -1,0 +1,92 @@
+I'll explain each of the 7 main services and models that have been implemented in your accounting application:
+
+1. **Invoice Management**
+- Defined in `Invoice.ts` and `InvoiceService.ts`
+- Handles creation, tracking, and management of invoices
+- Features:
+  - Invoice status tracking (draft, sent, paid, overdue)
+  - Client information management
+  - Line item tracking with tax and discount calculations
+  - Multiple currency support
+  - Payment tracking
+  - Invoice numbering system
+  - Summary statistics (total invoiced, paid, overdue amounts)
+
+2. **Budget Management**
+- Defined in `Budget.ts` and `BudgetService.ts`
+- Helps track and manage financial budgets
+- Features:
+  - Multiple budget periods (daily, weekly, monthly, quarterly, yearly)
+  - Category-based budgeting
+  - Budget status tracking (on track, at risk, exceeded)
+  - Spending limits and thresholds
+  - Notification system for budget alerts
+  - Budget summary and analytics
+
+3. **Transaction Management**
+- Defined in `Transaction.ts` and `TransactionService.ts`
+- Core service for recording and tracking financial transactions
+- Features:
+  - Multiple transaction types (income, expense, transfer)
+  - Category management
+  - Payment method tracking
+  - Attachment support for receipts
+  - Transaction status tracking
+  - Comprehensive filtering and search
+  - Transaction summaries and analytics
+
+4. **Currency Management**
+- Defined in `Currency.ts` and `CurrencyService.ts`
+- Handles multi-currency support and conversions
+- Features:
+  - Support for multiple currencies (KES, USD, EUR, GBP, TZS, UGX)
+  - Exchange rate management
+  - Currency conversion
+  - Currency formatting
+  - Currency validation
+  - Currency symbols and names
+
+5. **OCR (Optical Character Recognition) Service**
+- Defined in `OCRService.ts`
+- Automates data extraction from receipts and invoices
+- Features:
+  - Document scanning and processing
+  - Text extraction from images
+  - Automatic data classification
+  - Support for multiple languages (English and Swahili)
+  - Pattern recognition for amounts, dates, and vendors
+  - Data validation and verification
+  - Automatic category suggestion
+
+6. **Export Service**
+- Defined in `ExportService.ts`
+- Handles data export in various formats
+- Features:
+  - Multiple export formats (XLSX, CSV, PDF)
+  - Customizable export options
+  - Data filtering and formatting
+  - Report generation
+  - Summary statistics
+  - Chart generation
+  - Multi-currency support in exports
+
+7. **Report Service**
+- Defined in `ReportService.ts`
+- Generates comprehensive financial reports
+- Features:
+  - Multiple report types
+  - Customizable report periods
+  - Transaction summaries
+  - Budget analysis
+  - Invoice statistics
+  - Trend analysis
+  - Multi-currency support
+  - Export capabilities
+
+Each of these services is designed to work together to provide a comprehensive accounting solution. They share common features like:
+- Firebase integration for data storage
+- TypeScript type safety
+- Singleton pattern for service instances
+- Error handling and validation
+- Multi-currency support
+- User-specific data management

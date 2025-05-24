@@ -1,0 +1,47 @@
+.drawer {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.drawerPaper {
+  width: 240px;
+  background-color: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.toolbar {
+  min-height: 64px; /* Header height */
+}
+
+.listItem {
+  color: var(--text-color) !important;
+  margin: 0.5rem 0;
+  border-radius: 0 24px 24px 0;
+  margin-right: 1rem;
+}
+
+.listItem:hover {
+  background-color: var(--background-color) !important;
+}
+
+.active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.active .icon {
+  color: white !important;
+}
+
+.icon {
+  color: var(--text-color);
+  min-width: 40px !important;
+}
+
+@media (min-width: 768px) {
+  .drawer {
+    width: 280px;
+  }
+} 

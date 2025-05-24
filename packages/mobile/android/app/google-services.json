@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "843062581617",
+    "firebase_url": "https://smart-accounting-2bf04-default-rtdb.firebaseio.com",
+    "project_id": "smart-accounting-2bf04",
+    "storage_bucket": "smart-accounting-2bf04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:843062581617:android:567c817f0852eb77e0bed0",
+        "android_client_info": {
+          "package_name": "com.smartaccounting"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJ62gbR6Dhst24qjWcjhZ6qWJ6rStiv3s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

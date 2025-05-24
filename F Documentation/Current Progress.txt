@@ -1,0 +1,137 @@
+You're right - I need to incorporate the dual collaboration system and accounting-specific features. Let me revise the roadmap to include these important components:
+
+# Smart Accounting App - Revised Development Roadmap (Updated)
+
+## Phase 1: Core Infrastructure & Authentication
+1. **Authentication System**
+   - Implement Firebase Auth with role-based access (ADMIN, MANAGER, ATTENDANT, ACCOUNTANT)
+   - Create login/signup screens for both web and mobile
+   - Add role guards for protected routes
+   - Implement M-Pesa integration for Kenyan users
+
+2. **Shared Services & Types**
+   - Complete shared types for all entities
+   - Implement Firebase services with offline support
+   - Add data compression utilities
+   - Set up Firestore security rules
+
+## Phase 2: Core Features Implementation
+1. **Fuel Sales Management**
+   - Complete fuel sales entry form
+   - Add real-time sales tracking
+   - Implement pump integration
+   - Add payment method handling (Cash, M-Pesa, Card)
+
+2. **Shift Management**
+   - Complete shift start/end functionality
+   - Add shift summary and reports
+   - Implement cash reconciliation
+   - Add shift handover features
+
+3. **Expense Tracking**
+   - Implement expense entry with OCR
+   - Add receipt scanning
+   - Implement auto-categorization
+   - Add expense approval workflow
+
+4. **Inventory Management**
+   - Complete stock item tracking
+   - Add low stock alerts
+   - Implement reorder points
+   - Add stock movement history
+
+## Phase 3: Accounting & Collaboration
+1. **Dual Collaboration System**
+   - Implement real-time collaboration features
+   - Add concurrent editing support
+   - Implement change tracking and history
+   - Add conflict resolution
+   - Implement user presence indicators
+
+2. **Accounting Pages & Tools**
+   - Create unified accounting interface (web/mobile)
+   - Implement sector-specific views (General/Fuel Station)
+   - Add journal entry templates
+   - Implement double-entry accounting
+   - Add account reconciliation tools
+   - Implement tax calculation and reporting
+   - Add financial statement generation
+
+3. **Accounting Workflows**
+   - Implement approval workflows
+   - Add audit trails
+   - Implement document management
+   - Add compliance checks
+   - Implement financial controls
+
+## Phase 4: Advanced Features
+1. **Azera AI Assistant**
+   - Implement bilingual support (English/Swahili)
+   - Add voice input capabilities
+   - Implement smart categorization
+   - Add template library for common entries
+
+2. **Reporting & Analytics**
+   - Implement Excel export functionality
+   - Add real-time dashboard
+   - Create custom report builder
+   - Add data visualization
+   - Implement financial analytics
+
+3. **Efficiency Features**
+   - Implement auto-categorization
+   - Add offline-first support
+   - Implement data compression
+   - Add performance optimizations
+
+## Phase 5: Mobile-Specific Features
+1. **Mobile UI/UX**
+   - Implement mobile-specific navigation
+   - Add gesture controls
+   - Optimize for offline use
+   - Add mobile-specific features (camera, voice)
+
+2. **Mobile Performance**
+   - Implement caching strategies
+   - Add background sync
+   - Optimize image handling
+   - Add push notifications
+
+## Phase 6: Integration & Polish
+1. **Theme System**
+   - Implement light/dark mode
+   - Add custom color schemes
+   - Create consistent UI components
+   - Add responsive design
+
+2. **Subscription System**
+   - Implement tiered access control
+   - Add payment processing
+   - Create subscription management
+   - Add feature gating
+
+3. **Final Testing & Deployment**
+   - Add comprehensive testing
+   - Implement error tracking
+   - Add performance monitoring
+   - Prepare for app store submission
+
+Key Changes in this Revision:
+1. Added a dedicated "Accounting & Collaboration" phase
+2. Expanded accounting features to include:
+   - Double-entry accounting
+   - Financial statements
+   - Tax calculations
+   - Account reconciliation
+3. Added dual collaboration system features:
+   - Real-time collaboration
+   - Concurrent editing
+   - Change tracking
+   - Conflict resolution
+4. Enhanced accounting workflows with:
+   - Approval processes
+   - Audit trails
+   - Document management
+   - Compliance checks
+
+Would you like me to help you start implementing any specific phase or feature from this updated roadmap? We can begin with the most critical components first, such as the dual collaboration system or the accounting pages, or focus on a specific area that you find most important.

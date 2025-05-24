@@ -1,0 +1,103 @@
+// Firebase Collaboration System (Dual Mode)
+import { db, auth } from './firebase';
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  getDoc,
+  setDoc,
+  arrayUnion,
+  serverTimestamp
+} from 'firebase/firestore';
+
+// --- Create Organization ---
+export async function createOrganization(userId, name) {
+  const orgRef = doc(collection(db, 'organizations'));
+  await setDoc(orgRef, {
+    name,
+    createdBy: userId,
+    members: [{ userId, role: 'chief_accountant' }],
+    createdAt: serverTimestamp()
+  });
+
+  await updateDoc(doc(db, 'users', userId), {
+    orgId: orgRef.id,
+    accountType: 'org_member',
+    roles: { [orgRef.id]: 'chief_accountant' }
+  });
+}
+
+// --- Create Peer Project ---
+export async function createProject(userId, name) {
+  const projectRef = doc(collection(db, 'projects'));
+  await setDoc(projectRef, {
+    name,
+    createdBy: userId,
+    members: [userId],
+    permissions: { [userId]: 'lead' },
+    createdAt: serverTimestamp()
+  });
+
+  await updateDoc(doc(db, 'users', userId), {
+    projects: arrayUnion(projectRef.id),
+    roles: { [projectRef.id]: 'lead' }
+  });
+}
+
+// --- Invite to Org or Project ---
+export async function createInvite({ contextId, contextType, inviterId, inviteeEmail, role }) {
+  const inviteRef = await addDoc(collection(db, 'invites'), {
+    contextId,
+    contextType, // 'organization' or 'project'
+    inviterId,
+    inviteeEmail,
+    role,
+    status: 'pending',
+    createdAt: serverTimestamp()
+  });
+  return inviteRef.id;
+}
+
+// --- Accept Invite ---
+export async function acceptInvite(inviteId, userId) {
+  const inviteSnap = await getDoc(doc(db, 'invites', inviteId));
+  if (!inviteSnap.exists()) throw new Error('Invalid invite');
+
+  const { contextId, contextType, role } = inviteSnap.data();
+
+  if (contextType === 'organization') {
+    await updateDoc(doc(db, 'organizations', contextId), {
+      members: arrayUnion({ userId, role })
+    });
+    await updateDoc(doc(db, 'users', userId), {
+      orgId: contextId,
+      roles: { [contextId]: role },
+      accountType: 'org_member'
+    });
+  } else {
+    await updateDoc(doc(db, 'projects', contextId), {
+      members: arrayUnion(userId),
+      [`permissions.${userId}`]: role
+    });
+    await updateDoc(doc(db, 'users', userId), {
+      projects: arrayUnion(contextId),
+      roles: { [contextId]: role },
+      accountType: 'independent'
+    });
+  }
+
+  await updateDoc(doc(db, 'invites', inviteId), { status: 'accepted' });
+}
+
+// --- Log User Actions ---
+export async function logUserAction({ userId, contextId, contextType, action, metadata }) {
+  await addDoc(collection(db, 'logs'), {
+    userId,
+    contextId,
+    contextType,
+    action,
+    metadata,
+    timestamp: serverTimestamp()
+  });
+}

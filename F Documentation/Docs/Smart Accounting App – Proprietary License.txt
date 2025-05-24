@@ -1,0 +1,40 @@
+Smart Accounting App – Proprietary License
+Copyright (c) [2024] Freak-The-Alchemist
+
+This software and its associated files (the "Software") are proprietary to the copyright holder and may not be used, copied, modified, or distributed except as expressly permitted by this license.
+
+1. Ownership
+The Smart Accounting App, including its source code, binaries, documentation, branding, and associated assets, is the intellectual property of Freak-The-Alchemist, based in Kenya. All rights are reserved.
+
+2. License Grant
+You are granted a non-exclusive, non-transferable, revocable license to install and use the Smart Accounting App (mobile and web versions) for personal or business purposes. This license is limited to the object code of the Software provided via official distribution platforms (e.g., Google Play Store).
+
+3. Restrictions
+Except as expressly permitted, you may not:
+- Modify, decompile, reverse-engineer, or disassemble any part of the Software
+- Distribute, sublicense, rent, lease, or lend the Software
+- Use the Software for any unlawful or unauthorized purpose
+- Reproduce any part of the Software for redistribution
+- Circumvent licensing, authentication, or security mechanisms
+
+4. Data and Privacy
+Use of the Software may involve the processing and storage of financial data. Users are responsible for compliance with applicable data protection laws. The Software does not access or transmit any user data without explicit consent. See our Privacy Policy for more.
+
+5. Updates and Availability
+We reserve the right to modify, suspend, or discontinue the Software or any of its features at any time, without notice or liability.
+
+6. Warranty Disclaimer
+The Software is provided "as is", without warranty of any kind. No guarantee is made as to its performance, accuracy, security, or fitness for any particular purpose.
+
+7. Limitation of Liability
+In no event shall Freak-The-Alchemist be liable for any direct, indirect, incidental, special, or consequential damages arising from the use of or inability to use the Software.
+
+8. Governing Law
+This license shall be governed by and construed in accordance with the laws of the Republic of Kenya. Any disputes shall be subject to the exclusive jurisdiction of the courts of Kenya.
+
+9. Contact
+For licensing inquiries, support, or partnership requests, contact:
+Email: support@smartaccountant.app (replace with your real contact)
+
+By using this Software, you agree to the terms above.
+

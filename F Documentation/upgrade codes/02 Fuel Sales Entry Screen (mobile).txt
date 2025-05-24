@@ -1,0 +1,199 @@
+// 🚀 Smart Accounting App: Petrol Station Version
+// This React Native + Firebase project adds fuel sales tracking, shift logs, expenses, inventory, and Excel export
+// This is beginner-friendly: you'll learn what each section does step by step
+
+// 📦 Project Setup Prompt
+/*
+1. Start a monorepo project (if not already):
+
+   mkdir SmartAccountingApp
+   cd SmartAccountingApp
+
+   pnpm init
+   pnpm install -w
+
+   mkdir -p packages/{mobile,web,shared}
+
+2. Inside "packages/shared", run:
+   pnpm init -y
+
+3. Add shared constants/types:
+   shared/src/types.ts →
+*/
+
+// shared/src/types.ts
+export interface FuelSale {
+  id?: string;
+  date: string;
+  pumpId: string;
+  fuelType: 'Petrol' | 'Diesel';
+  litersSold: number;
+  pricePerLiter: number;
+  totalAmount: number;
+  paymentMethod: 'Cash' | 'M-Pesa' | 'Card';
+  attendantId: string;
+}
+
+export interface Shift {
+  id?: string;
+  attendantId: string;
+  startTime: string;
+  endTime?: string;
+  sales: FuelSale[];
+  totalCash: number;
+  totalMpesas: number;
+}
+
+export interface StockItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  purchasePrice: number;
+  sellingPrice: number;
+}
+
+export interface Expense {
+  id?: string;
+  date: string;
+  category: string;
+  amount: number;
+  notes?: string;
+  imageUrl?: string; // from OCR receipt
+}
+
+// shared/src/constants.ts
+export const FUEL_TYPES = ['Petrol', 'Diesel'] as const;
+export const PAYMENT_METHODS = ['Cash', 'M-Pesa', 'Card'] as const;
+
+// ✅ Explanation:
+// You’ve just defined the "shape" of the important data in your app.
+// These types make it easy to ensure you’re handling your data correctly throughout your code.
+
+/*
+Next step: Create reusable Firebase utility to handle reading/writing data.
+Go to shared/src/firebase.ts
+*/
+
+// shared/src/firebase.ts
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'dummy_key',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'dummy_project',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy.appspot.com',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '000000000000',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:000000000000:web:0000000000000000'
+};
+
+// Prevent reinitialization in dev environments (e.g. Expo hot reload)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// ✅ Explanation:
+// This version uses environment variables, so you must define them in a `.env` file or in your environment.
+// For development in Expo, you can create a file called `.env` in your project root:
+//
+// EXPO_PUBLIC_FIREBASE_API_KEY=your_key_here
+// EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain_here
+// ...etc.
+
+/*
+🔧 Fuel Sales Entry Screen (mobile):
+*/
+
+// mobile/src/screens/FuelSaleForm.tsx
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { db, auth } from '@smart-accounting/shared/firebase';
+import { FUEL_TYPES, PAYMENT_METHODS } from '@smart-accounting/shared/constants';
+
+const FuelSaleForm = () => {
+  const [litersSold, setLitersSold] = useState('');
+  const [pricePerLiter, setPricePerLiter] = useState('');
+  const [fuelType, setFuelType] = useState('Petrol');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [pumpId, setPumpId] = useState('1');
+
+  const handleSubmit = async () => {
+    const user = auth.currentUser;
+    if (!user) return alert('Not logged in');
+
+    const liters = parseFloat(litersSold);
+    const price = parseFloat(pricePerLiter);
+    if (isNaN(liters) || isNaN(price)) return alert('Enter valid numbers');
+
+    const totalAmount = liters * price;
+
+    try {
+      await addDoc(collection(db, 'fuelSales'), {
+        date: Timestamp.now().toDate().toISOString(),
+        pumpId,
+        fuelType,
+        litersSold: liters,
+        pricePerLiter: price,
+        totalAmount,
+        paymentMethod,
+        attendantId: user.uid
+      });
+      Alert.alert('Success', 'Fuel sale recorded.');
+      setLitersSold('');
+      setPricePerLiter('');
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Could not save sale.');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>Fuel Type</Text>
+      <TextInput value={fuelType} onChangeText={setFuelType} style={styles.input} />
+
+      <Text style={styles.label}>Pump ID</Text>
+      <TextInput value={pumpId} onChangeText={setPumpId} style={styles.input} />
+
+      <Text style={styles.label}>Liters Sold</Text>
+      <TextInput value={litersSold} onChangeText={setLitersSold} keyboardType="numeric" style={styles.input} />
+
+      <Text style={styles.label}>Price per Liter</Text>
+      <TextInput value={pricePerLiter} onChangeText={setPricePerLiter} keyboardType="numeric" style={styles.input} />
+
+      <Text style={styles.label}>Payment Method</Text>
+      <TextInput value={paymentMethod} onChangeText={setPaymentMethod} style={styles.input} />
+
+      <Button title="Record Sale" onPress={handleSubmit} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+  label: { marginTop: 10 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 8,
+    marginTop: 4,
+    borderRadius: 4
+  }
+});
+
+export default FuelSaleForm;
+
+// ✅ Explanation:
+// This form lets an attendant enter liters sold, pump, fuel type, price per liter, and payment method.
+// It saves the record to Firebase Firestore.
+
+/*
+Coming up next:
+✅ Add shift log screen
+✅ Add expense tracker
+✅ Excel export
+Would you like me to generate the Shift Log screen next?
+*/

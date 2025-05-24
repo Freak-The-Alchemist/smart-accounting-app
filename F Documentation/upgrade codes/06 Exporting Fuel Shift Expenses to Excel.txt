@@ -1,0 +1,247 @@
+// 🚀 Smart Accounting App: Petrol Station Version
+// This React Native + Firebase project adds fuel sales tracking, shift logs, expenses, inventory, and Excel export
+// This is beginner-friendly: you'll learn what each section does step by step
+
+// 📦 Project Setup Prompt
+/*
+1. Start a monorepo project (if not already):
+
+   mkdir SmartAccountingApp
+   cd SmartAccountingApp
+
+   pnpm init
+   pnpm install -w
+
+   mkdir -p packages/{mobile,web,shared}
+
+2. Inside "packages/shared", run:
+   pnpm init -y
+
+3. Add shared constants/types:
+   shared/src/types.ts →
+*/
+
+// shared/src/types.ts
+export interface FuelSale {
+  id?: string;
+  date: string;
+  pumpId: string;
+  fuelType: 'Petrol' | 'Diesel';
+  litersSold: number;
+  pricePerLiter: number;
+  totalAmount: number;
+  paymentMethod: 'Cash' | 'M-Pesa' | 'Card';
+  attendantId: string;
+}
+
+export interface Shift {
+  id?: string;
+  attendantId: string;
+  startTime: string;
+  endTime?: string;
+  sales: FuelSale[];
+  totalCash: number;
+  totalMpesas: number;
+}
+
+export interface StockItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  purchasePrice: number;
+  sellingPrice: number;
+}
+
+export interface Expense {
+  id?: string;
+  date: string;
+  category: string;
+  amount: number;
+  notes?: string;
+  imageUrl?: string; // from OCR receipt
+}
+
+// shared/src/constants.ts
+export const FUEL_TYPES = ['Petrol', 'Diesel'] as const;
+export const PAYMENT_METHODS = ['Cash', 'M-Pesa', 'Card'] as const;
+
+// ✅ Explanation:
+// You’ve just defined the "shape" of the important data in your app.
+// These types make it easy to ensure you’re handling your data correctly throughout your code.
+
+/*
+Next step: Create reusable Firebase utility to handle reading/writing data.
+Go to shared/src/firebase.ts
+*/
+
+// shared/src/firebase.ts
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'dummy_key',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dummy.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'dummy_project',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dummy.appspot.com',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '000000000000',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:000000000000:web:0000000000000000'
+};
+
+// Prevent reinitialization in dev environments (e.g. Expo hot reload)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// ✅ Explanation:
+// This version uses environment variables, so you must define them in a `.env` file or in your environment.
+// For development in Expo, you can create a file called `.env` in your project root:
+//
+// EXPO_PUBLIC_FIREBASE_API_KEY=your_key_here
+// EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain_here
+// ...etc.
+
+/*
+🔧 Fuel Sales Entry Screen (mobile):
+*/
+
+// mobile/src/screens/FuelSaleForm.tsx
+// ... [existing FuelSaleForm.tsx code remains unchanged] ...
+
+/*
+🔧 Shift Log Screen (mobile):
+*/
+
+// mobile/src/screens/ShiftLogScreen.tsx
+// ... [existing ShiftLogScreen.tsx code remains unchanged] ...
+
+/*
+🔧 Expense Tracker Screen (mobile):
+*/
+
+// mobile/src/screens/ExpenseForm.tsx
+// ... [existing ExpenseForm.tsx code remains unchanged] ...
+
+/*
+📤 Excel Export Utility (mobile):
+*/
+
+// mobile/src/utils/exportToExcel.ts
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import ExcelJS from 'exceljs';
+
+export async function exportExpensesToExcel(expenses: any[]) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Expenses');
+
+  sheet.columns = [
+    { header: 'Date', key: 'date', width: 20 },
+    { header: 'Category', key: 'category', width: 20 },
+    { header: 'Amount', key: 'amount', width: 15 },
+    { header: 'Notes', key: 'notes', width: 30 },
+  ];
+
+  expenses.forEach(exp => {
+    sheet.addRow({
+      date: exp.date,
+      category: exp.category,
+      amount: exp.amount,
+      notes: exp.notes || ''
+    });
+  });
+
+  await saveAndShare(workbook, 'Expenses_Report.xlsx');
+}
+
+export async function exportFuelSalesToExcel(sales: any[]) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Fuel Sales');
+
+  sheet.columns = [
+    { header: 'Date', key: 'date', width: 20 },
+    { header: 'Pump ID', key: 'pumpId', width: 10 },
+    { header: 'Fuel Type', key: 'fuelType', width: 15 },
+    { header: 'Liters', key: 'litersSold', width: 10 },
+    { header: 'Price/Liter', key: 'pricePerLiter', width: 15 },
+    { header: 'Total', key: 'totalAmount', width: 15 },
+    { header: 'Payment Method', key: 'paymentMethod', width: 20 },
+  ];
+
+  sales.forEach(sale => {
+    sheet.addRow(sale);
+  });
+
+  await saveAndShare(workbook, 'FuelSales_Report.xlsx');
+}
+
+export async function exportShiftsToExcel(shifts: any[]) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Shifts');
+
+  sheet.columns = [
+    { header: 'Attendant ID', key: 'attendantId', width: 25 },
+    { header: 'Start Time', key: 'startTime', width: 25 },
+    { header: 'End Time', key: 'endTime', width: 25 },
+    { header: 'Total Cash', key: 'totalCash', width: 15 },
+    { header: 'Total M-Pesa', key: 'totalMpesas', width: 15 },
+  ];
+
+  shifts.forEach(shift => {
+    sheet.addRow(shift);
+  });
+
+  await saveAndShare(workbook, 'Shifts_Report.xlsx');
+}
+
+async function saveAndShare(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const fileUri = FileSystem.documentDirectory + filename;
+  await FileSystem.writeAsStringAsync(fileUri, buffer.toString('base64'), {
+    encoding: FileSystem.EncodingType.Base64
+  });
+
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(fileUri);
+  } else {
+    throw new Error('Sharing is not available on this device');
+  }
+}
+
+/*
+📲 Export Screen with Buttons
+*/
+
+// mobile/src/screens/ExportScreen.tsx
+import React, { useState, useEffect } from 'react';
+import { View, Button, StyleSheet } from 'react-native';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@smart-accounting/shared/firebase';
+import { exportExpensesToExcel, exportFuelSalesToExcel, exportShiftsToExcel } from '../utils/exportToExcel';
+
+export default function ExportScreen() {
+  const [loading, setLoading] = useState(false);
+
+  const loadAndExport = async (type: 'expenses' | 'fuelSales' | 'shifts') => {
+    setLoading(true);
+    const snapshot = await getDocs(collection(db, type));
+    const data = snapshot.docs.map(doc => doc.data());
+    if (type === 'expenses') await exportExpensesToExcel(data);
+    if (type === 'fuelSales') await exportFuelSalesToExcel(data);
+    if (type === 'shifts') await exportShiftsToExcel(data);
+    setLoading(false);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Button title="Export Expenses" onPress={() => loadAndExport('expenses')} disabled={loading} />
+      <Button title="Export Fuel Sales" onPress={() => loadAndExport('fuelSales')} disabled={loading} />
+      <Button title="Export Shifts" onPress={() => loadAndExport('shifts')} disabled={loading} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20, gap: 12 },
+});

@@ -1,0 +1,103 @@
+# Terms of Service
+
+**Effective Date:** January 1, 2025
+**App:** Smart Accounting App
+**Owner:** Freak-The-Alchemist
+**Contact:** [muthamarichard47@gmail.com](mailto:muthamarichard47@gmail.com)
+
+## 1. Acceptance of Terms
+
+By downloading or using the Smart Accounting App, you agree to be bound by these Terms of Service. If you do not agree, do not use the app.
+
+## 2. License to Use
+
+You are granted a limited, non-transferable, non-exclusive, revocable license to use the Smart Accounting App in accordance with these terms.
+
+## 3. User Obligations
+
+You agree not to:
+
+* Reverse-engineer, modify, or distribute the app
+* Use it for unlawful or unauthorized purposes
+* Circumvent access or usage restrictions
+
+## 4. Data Usage
+
+You retain all rights to your data. The app does not access or store data without your consent. Data is processed locally or via Firebase under secure channels.
+
+## 5. Account Management
+
+You are responsible for safeguarding login credentials. The app may disable accounts involved in abusive or unauthorized behavior.
+
+## 6. Updates and Modifications
+
+We may update or modify the app and these terms at any time. Continued use constitutes acceptance.
+
+## 7. Termination
+
+We reserve the right to terminate access if you violate these terms.
+
+## 8. Disclaimer of Warranties
+
+The app is provided "as-is" without warranties of any kind. Use is at your own risk.
+
+## 9. Limitation of Liability
+
+We are not liable for any damages arising from the use or inability to use the app.
+
+## 10. Governing Law
+
+These terms are governed by the laws of the Republic of Kenya.
+
+---
+
+# Privacy Policy
+
+**Effective Date:** January 1, 2025
+**App:** Smart Accounting App
+**Owner:** Freak-The-Alchemist
+**Contact:** [muthamarichard47@gmail.com](mailto:muthamarichard47@gmail.com)
+
+## 1. Introduction
+
+This Privacy Policy explains how Smart Accounting App collects, uses, and protects your information.
+
+## 2. Information We Collect
+
+* **User-provided information**: Account details, profile data
+* **Automatically collected information**: Device and usage data
+* **Third-party services**: Firebase Authentication and Firestore
+
+## 3. Use of Information
+
+* Provide and improve app functionality
+* Secure and manage user accounts
+* Analyze trends for product improvements
+
+## 4. Data Sharing
+
+We do not sell or share your data with third parties except as required by law or to provide core services (e.g., Firebase).
+
+## 5. Data Storage and Security
+
+All data is securely stored in Firebase. Encryption and access controls are enforced.
+
+## 6. Your Rights
+
+You may request to access, modify, or delete your data by contacting us at the email above.
+
+## 7. Data Retention
+
+We retain user data only as long as necessary for the app to function or as required by law.
+
+## 8. Children's Privacy
+
+The app is not intended for users under 13. We do not knowingly collect data from children.
+
+## 9. International Users
+
+If you are accessing the app from outside Kenya, your data may be transferred and stored in Kenya or other jurisdictions.
+
+## 10. Changes to This Policy
+
+We may update this policy. You will be notified of significant changes via app updates or notifications.

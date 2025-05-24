@@ -1,0 +1,82 @@
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useAuth } from '../shared/auth';
+import { exportToExcel } from '../shared/utils';
+import { DocumentScanner, VoiceInput } from '../components';
+
+export default function AccountingScreen() {
+  const { currentUser } = useAuth();
+  const [entries, setEntries] = useState<AccountingEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sector, setSector] = useState<'general' | 'fuel'>('general');
+
+  useEffect(() => {
+    const fetchEntries = async () => {
+      setIsLoading(true);
+      try {
+        // TODO: Replace with actual Firebase query
+        const mockEntries = await getEntries(currentUser.uid, sector);
+        setEntries(mockEntries);
+      } catch (error) {
+        console.error('Error fetching entries:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEntries();
+  }, [currentUser, sector]);
+
+  const handleNewEntry = (entry: AccountingEntry) => {
+    setEntries([...entries, entry]);
+    // TODO: Sync with Firebase
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>
+          {sector === 'fuel' ? 'Fuel Station Accounting' : 'General Accounting'}
+        </Text>
+        
+        {currentUser.role === 'accountant' && (
+          <View style={styles.sectorPicker}>
+            <TouchableOpacity 
+              style={[styles.sectorButton, sector === 'general' && styles.activeButton]}
+              onPress={() => setSector('general')}
+            >
+              <Text>General</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sectorButton, sector === 'fuel' && styles.activeButton]}
+              onPress={() => setSector('fuel')}
+            >
+              <Text>Fuel Station</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.inputMethods}>
+        <DocumentScanner onScanComplete={(text) => console.log('Scanned:', text)} />
+        <VoiceInput onTranscriptComplete={(text) => console.log('Voice:', text)} />
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <ScrollView style={styles.entriesList}>
+          {entries.map((entry) => (
+            <View key={entry.id} style={styles.entryItem}>
+              {/* Render entry details */}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      <TouchableOpacity 
+        style={[styles.exportButton, entries.length === 0 && styles.disabledButton]}
+        onPress={() => exportToExcel(entries)}
+        disabled={entries.length === 0}
+      >
+        <Text style={styles.export

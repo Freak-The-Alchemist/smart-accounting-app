@@ -1,0 +1,125 @@
+.voice-control {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.voice-control.unsupported {
+  color: #dc3545;
+  text-align: center;
+  padding: 1rem;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.voice-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.voice-button:hover {
+  background-color: #0056b3;
+}
+
+.voice-button.listening {
+  background-color: #dc3545;
+  animation: pulse 1.5s infinite;
+}
+
+.voice-icon {
+  font-size: 1.2rem;
+}
+
+.voice-status {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.listening-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #007bff;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.available-commands {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.available-commands h3 {
+  margin: 0 0 0.75rem 0;
+  color: #343a40;
+  font-size: 1.1rem;
+}
+
+.available-commands ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.available-commands li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.available-commands li:last-child {
+  border-bottom: none;
+}
+
+.available-commands strong {
+  color: #007bff;
+  margin-right: 0.5rem;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+} 

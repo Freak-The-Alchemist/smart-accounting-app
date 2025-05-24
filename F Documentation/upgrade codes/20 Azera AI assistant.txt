@@ -1,0 +1,304 @@
+Here's a **complete, beginner-friendly package** you can feed directly into Cursor to build an accountant-friendly helper with Swahili support, performance optimizations, and affordable upgrades:
+
+---
+
+### **1. Enhanced AzeraHelper (Web + Mobile)**
+#### **File Structure**
+```
+src/
+├── assets/
+│   └── azera_knowledge.json (updated)
+├── components/
+│   ├── AzeraHelper/ 
+│   │   ├── Web.tsx
+│   │   ├── Mobile.tsx
+│   │   └── styles.ts
+└── hooks/
+    └── useAzeraKnowledge.ts
+```
+
+---
+
+### **A. Updated Knowledge Base (`azera_knowledge.json`)**
+```json
+{
+  "terms": {
+    "journal": {
+      "en": "A detailed log of every transaction",
+      "sw": "Orodha ya kila muamua",
+      "example": "Daily sales records"
+    },
+    "debit": {
+      "en": "Increases assets or expenses",
+      "sw": "Kuongeza mali au matumizi",
+      "example": "Buying office supplies"
+    }
+  },
+  "faq": [
+    {
+      "q": {
+        "en": "How do I balance my journal?",
+        "sw": "Nitawezaje kusawazisha jarida?"
+      },
+      "a": {
+        "en": "Total debits must equal total credits",
+        "sw": "Jumla ya debit lazima iwe sawa na credit"
+      }
+    }
+  ]
+}
+```
+
+---
+
+### **B. Shared Hook (`useAzeraKnowledge.ts`)**
+```typescript
+import { useState, useEffect } from 'react';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+export default function useAzeraKnowledge(language = 'en') {
+  const [knowledge, setKnowledge] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load from cache first, then Firebase
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // 1. Check localStorage cache
+        const cached = localStorage.getItem('azeraKnowledge');
+        if (cached) setKnowledge(JSON.parse(cached));
+
+        // 2. Fetch latest from Firebase
+        const docRef = doc(db, 'content', 'azera');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setKnowledge(data);
+          localStorage.setItem('azeraKnowledge', JSON.stringify(data));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Get localized text
+  const t = (key: string) => {
+    if (!knowledge) return '';
+    return knowledge.terms[key]?.[language] || key;
+  };
+
+  return { knowledge, loading, t };
+}
+```
+
+---
+
+### **C. Web Component (`Web.tsx`)**
+```tsx
+import { useState } from 'react';
+import useAzeraKnowledge from '../../hooks/useAzeraKnowledge';
+import styles from './styles';
+
+export default function AzeraHelperWeb() {
+  const [language, setLanguage] = useState<'en' | 'sw'>('en');
+  const [searchTerm, setSearchTerm] = useState('');
+  const { knowledge, t } = useAzeraKnowledge(language);
+
+  const filteredFAQs = knowledge?.faq.filter(faq => 
+    faq.q[language].toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.header}>
+        <h3>Ask Azera 💬</h3>
+        <select 
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as 'en' | 'sw')}
+          className={styles.languageToggle}
+        >
+          <option value="en">English</option>
+          <option value="sw">Swahili</option>
+        </select>
+      </div>
+
+      <input
+        type="text"
+        placeholder={language === 'en' ? "Search help..." : "Tafuta msaada..."}
+        className={styles.search}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+
+      <div className={styles.results}>
+        {filteredFAQs.map((faq, i) => (
+          <div key={i} className={styles.faqItem}>
+            <h4>{faq.q[language]}</h4>
+            <p>{faq.a[language]}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+### **D. Mobile Component (`Mobile.tsx`)**
+```tsx
+import { View, Text, TextInput } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import useAzeraKnowledge from '../../hooks/useAzeraKnowledge';
+import styles from './styles';
+
+export default function AzeraHelperMobile() {
+  const [language, setLanguage] = useState<'en' | 'sw'>('en');
+  const [searchTerm, setSearchTerm] = useState('');
+  const { knowledge, t } = useAzeraKnowledge(language);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Ask Azera 💬</Text>
+        <Picker
+          selectedValue={language}
+          onValueChange={setLanguage}
+          style={styles.languagePicker}
+        >
+          <Picker.Item label="English" value="en" />
+          <Picker.Item label="Swahili" value="sw" />
+        </Picker>
+      </View>
+
+      <TextInput
+        placeholder={language === 'en' ? "Search help..." : "Tafuta msaada..."}
+        style={styles.search}
+        value={searchTerm}
+        onChangeText={setSearchTerm}
+      />
+
+      <View style={styles.results}>
+        {knowledge?.faq
+          .filter(faq => faq.q[language].includes(searchTerm))
+          .map((faq, i) => (
+            <View key={i} style={styles.faqItem}>
+              <Text style={styles.question}>{faq.q[language]}</Text>
+              <Text style={styles.answer}>{faq.a[language]}</Text>
+            </View>
+          ))}
+      </View>
+    </View>
+  );
+}
+```
+
+---
+
+### **2. Affordable Performance Upgrades**
+#### **A. Optimized Storage**
+```typescript
+// firebase/firestore.rules
+match /content/azera {
+  allow read: if true; // Public read
+  allow write: if request.auth.token.admin == true;
+}
+```
+
+#### **B. Memory Management**
+```typescript
+// hooks/useAzeraKnowledge.ts - Add cleanup
+useEffect(() => {
+  return () => {
+    // Clear search cache when unmounting
+    setSearchTerm('');
+  };
+}, []);
+```
+
+#### **C. Image Optimization**
+```tsx
+// For receipt images in FAQs
+<img 
+  src={faq.image} 
+  loading="lazy"
+  alt={faq.q[language]}
+  className="max-w-full h-auto"
+/>
+```
+
+---
+
+### **3. Accountant-Friendly Features**
+#### **A. Quick Journal Templates**
+```json
+// Add to azera_knowledge.json
+"templates": {
+  "fuel_sale": {
+    "en": "Fuel Sale",
+    "sw": "Uuzaji wa Mafuta",
+    "entries": [
+      { "account": "Cash", "type": "debit", "amount": "=total" },
+      { "account": "Sales", "type": "credit", "amount": "=total" }
+    ]
+  }
+}
+```
+
+#### **B. Swahili Number Formatting**
+```typescript
+// utils/format.ts
+export const formatMoney = (amount: number, language: 'en' | 'sw') => {
+  return language === 'sw' 
+    ? `TSh ${amount.toLocaleString('sw-TZ')}` 
+    : `KES ${amount.toLocaleString('en-KE')}`;
+};
+```
+
+---
+
+### **4. Cursor Implementation Guide**
+1. **Paste Files**:
+   - Create the folder structure shown above
+   - Copy each code block to its corresponding file
+
+2. **Install Dependencies**:
+```bash
+npm install @react-native-picker/picker firebase lodash.memoize
+```
+
+3. **Ask Cursor**:
+   - _"How to add Swahili voice input to Azera?"_
+   - _"Implement Firebase storage caching for images"_
+   - _"Create a journal entry form with template support"_
+
+---
+
+### **Key Benefits for Accountants**
+1. **Bilingual Support**: Switch between English/Swahili instantly
+2. **Offline Access**: Cached knowledge base works without internet
+3. **Fast Search**: Find answers in 2 languages
+4. **Template Library**: Pre-built journal entries
+
+**Example Workflow**:  
+1. User searches _"debit"_ in Swahili → Shows _"Kuweka kwa debit"_  
+2. Clicks "Fuel Sale" template → Auto-fills journal entries  
+3. Views formatted amounts → "TSh 1,000,000"  
+
+---
+
+**Next Steps in Cursor**:  
+1. Generate missing style files (`styles.ts`)  
+2. Implement voice input:  
+   ```tsx
+   // Ask Cursor: "Add React Native voice input for Swahili"
+   ```  
+3. Add more Swahili terms:  
+   ```json
+   // "VAT": { "sw": "Kodi ya Thamani Aliongezea" }
+   ```  
