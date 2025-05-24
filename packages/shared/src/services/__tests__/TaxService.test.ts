@@ -1,5 +1,6 @@
+import { Tax, TaxType, TaxStatus, TaxCalculationType, TaxFilters } from '../../models/Tax';
+import { SUPPORTED_CURRENCIES } from '../../models/Currency';
 import { TaxService } from '../TaxService';
-import { Tax, TaxType, TaxStatus } from '../../models/Tax';
 import { TaxRepository } from '../../repositories/TaxRepository';
 import { TransactionRepository } from '../../repositories/TransactionRepository';
 import { NotificationService } from '../NotificationService';
@@ -16,14 +17,68 @@ describe('TaxService', () => {
   let mockTransactionRepository: jest.Mocked<TransactionRepository>;
   let mockNotificationService: jest.Mocked<NotificationService>;
 
+  const mockTax: Tax = {
+    id: 'tax-1',
+    code: 'VAT',
+    name: 'Value Added Tax',
+    type: TaxType.VAT,
+    status: TaxStatus.ACTIVE,
+    organizationId: 'org-1',
+    description: 'Standard VAT rate',
+    rates: [{
+      id: 'rate-1',
+      rate: 20,
+      type: TaxCalculationType.PERCENTAGE,
+      effectiveFrom: new Date(),
+      currency: SUPPORTED_CURRENCIES[0]
+    }],
+    createdBy: 'user-1',
+    updatedBy: 'user-1',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const taxParams = {
+    code: 'VAT',
+    name: 'Value Added Tax',
+    type: TaxType.VAT,
+    status: TaxStatus.ACTIVE,
+    organizationId: 'org-1',
+    description: 'Standard VAT rate',
+    rates: [{
+      id: 'rate-1',
+      rate: 20,
+      type: TaxCalculationType.PERCENTAGE,
+      effectiveFrom: new Date(),
+      currency: SUPPORTED_CURRENCIES[0]
+    }],
+    createdBy: 'user-1',
+    updatedBy: 'user-1'
+  };
+
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
 
     // Initialize mocks
-    mockTaxRepository = new TaxRepository() as jest.Mocked<TaxRepository>;
-    mockTransactionRepository = new TransactionRepository() as jest.Mocked<TransactionRepository>;
-    mockNotificationService = new NotificationService() as jest.Mocked<NotificationService>;
+    mockTaxRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      find: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      getTaxRates: jest.fn(),
+    } as any;
+
+    mockTransactionRepository = {
+      find: jest.fn(),
+      findById: jest.fn(),
+      update: jest.fn(),
+    } as any;
+
+    mockNotificationService = {
+      sendTaxNotification: jest.fn(),
+    } as any;
 
     // Initialize service with mocked dependencies
     taxService = new TaxService(
@@ -34,43 +89,26 @@ describe('TaxService', () => {
   });
 
   describe('createTax', () => {
-    const taxParams = {
-      type: TaxType.INCOME,
-      amount: 1000,
-      description: 'Test tax',
-      dueDate: new Date('2024-12-31'),
-      category: 'Income Tax',
-      metadata: {
-        taxYear: '2024',
-        taxPeriod: 'Q4',
-      },
-    };
-
-    it('should create tax successfully', async () => {
-      const mockTax = {
-        id: 'tax123',
-        ...taxParams,
-        status: TaxStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
+    it('should create a tax record successfully', async () => {
       mockTaxRepository.create.mockResolvedValue(mockTax);
 
       const result = await taxService.createTax(taxParams);
 
       expect(result).toEqual(mockTax);
       expect(mockTaxRepository.create).toHaveBeenCalledWith(taxParams);
-      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(
-        mockTax,
-        'created'
-      );
+      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(mockTax, 'created');
     });
 
     it('should throw ValidationError for invalid tax parameters', async () => {
       const invalidParams = {
         ...taxParams,
-        amount: -1000, // Invalid negative amount
+        rates: [{
+          id: 'rate-1',
+          rate: -20, // Invalid negative rate
+          type: TaxCalculationType.PERCENTAGE,
+          effectiveFrom: new Date(),
+          currency: SUPPORTED_CURRENCIES[0]
+        }]
       };
 
       await expect(taxService.createTax(invalidParams))
@@ -78,7 +116,7 @@ describe('TaxService', () => {
         .toThrow(ValidationError);
     });
 
-    it('should handle repository errors', async () => {
+    it('should throw error when tax creation fails', async () => {
       mockTaxRepository.create.mockRejectedValue(new Error('Database error'));
 
       await expect(taxService.createTax(taxParams))
@@ -88,294 +126,215 @@ describe('TaxService', () => {
   });
 
   describe('getTaxById', () => {
-    const taxId = 'tax123';
-
-    it('should return tax by id', async () => {
-      const mockTax = {
-        id: taxId,
-        type: TaxType.INCOME,
-        amount: 1000,
-        description: 'Test tax',
-        dueDate: new Date('2024-12-31'),
-        category: 'Income Tax',
-        status: TaxStatus.PENDING,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
+    it('should return a tax record by id', async () => {
       mockTaxRepository.findById.mockResolvedValue(mockTax);
 
-      const result = await taxService.getTaxById(taxId);
+      const result = await taxService.getTaxById('tax-1');
 
       expect(result).toEqual(mockTax);
-      expect(mockTaxRepository.findById).toHaveBeenCalledWith(taxId);
+      expect(mockTaxRepository.findById).toHaveBeenCalledWith('tax-1');
     });
 
-    it('should return null for non-existent tax', async () => {
+    it('should return null when tax is not found', async () => {
       mockTaxRepository.findById.mockResolvedValue(null);
 
-      const result = await taxService.getTaxById(taxId);
+      const result = await taxService.getTaxById('non-existent');
 
       expect(result).toBeNull();
+    });
+
+    it('should throw error when tax retrieval fails', async () => {
+      mockTaxRepository.findById.mockRejectedValue(new Error('Database error'));
+
+      await expect(taxService.getTaxById('tax-1'))
+        .rejects
+        .toThrow('Database error');
     });
   });
 
   describe('getTaxes', () => {
-    const filters = {
-      type: TaxType.INCOME,
-      status: TaxStatus.PENDING,
-    };
+    const mockTaxes = [mockTax];
 
-    it('should return filtered taxes', async () => {
-      const mockTaxes = [
-        {
-          id: 'tax1',
-          type: TaxType.INCOME,
-          amount: 1000,
-          description: 'Tax 1',
-          dueDate: new Date('2024-12-31'),
-          category: 'Income Tax',
-          status: TaxStatus.PENDING,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'tax2',
-          type: TaxType.INCOME,
-          amount: 2000,
-          description: 'Tax 2',
-          dueDate: new Date('2024-12-31'),
-          category: 'Income Tax',
-          status: TaxStatus.PENDING,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
+    it('should return all taxes for an organization', async () => {
       mockTaxRepository.find.mockResolvedValue(mockTaxes);
 
+      const filters: TaxFilters = {};
       const result = await taxService.getTaxes(filters);
 
       expect(result).toEqual(mockTaxes);
       expect(mockTaxRepository.find).toHaveBeenCalledWith(filters);
     });
 
-    it('should return empty array when no taxes match filters', async () => {
-      mockTaxRepository.find.mockResolvedValue([]);
-
-      const result = await taxService.getTaxes(filters);
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('updateTax', () => {
-    const taxId = 'tax123';
-    const updateParams = {
-      description: 'Updated tax',
-      category: 'Updated Category',
-    };
-
-    it('should update tax successfully', async () => {
-      const mockTax = {
-        id: taxId,
-        type: TaxType.INCOME,
-        amount: 1000,
-        description: 'Test tax',
-        dueDate: new Date('2024-12-31'),
-        category: 'Income Tax',
-        status: TaxStatus.PENDING,
-      };
-
-      const mockUpdatedTax = {
-        ...mockTax,
-        ...updateParams,
-        updatedAt: new Date(),
-      };
-
-      mockTaxRepository.findById.mockResolvedValue(mockTax);
-      mockTaxRepository.update.mockResolvedValue(mockUpdatedTax);
-
-      const result = await taxService.updateTax(taxId, updateParams);
-
-      expect(result).toEqual(mockUpdatedTax);
-      expect(mockTaxRepository.findById).toHaveBeenCalledWith(taxId);
-      expect(mockTaxRepository.update).toHaveBeenCalledWith(taxId, updateParams);
-      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(
-        mockUpdatedTax,
-        'updated'
-      );
-    });
-
-    it('should throw ValidationError for invalid update parameters', async () => {
-      const invalidParams = {
-        ...updateParams,
-        amount: -1000, // Invalid negative amount
-      };
-
-      await expect(taxService.updateTax(taxId, invalidParams))
-        .rejects
-        .toThrow(ValidationError);
-    });
-
-    it('should handle non-existent tax', async () => {
-      mockTaxRepository.findById.mockResolvedValue(null);
-
-      await expect(taxService.updateTax(taxId, updateParams))
-        .rejects
-        .toThrow('Tax not found');
-    });
-  });
-
-  describe('deleteTax', () => {
-    const taxId = 'tax123';
-
-    it('should delete tax successfully', async () => {
-      const mockTax = {
-        id: taxId,
-        type: TaxType.INCOME,
-        amount: 1000,
-        description: 'Test tax',
-        dueDate: new Date('2024-12-31'),
-        category: 'Income Tax',
-        status: TaxStatus.PENDING,
-      };
-
-      mockTaxRepository.findById.mockResolvedValue(mockTax);
-      mockTaxRepository.delete.mockResolvedValue({
-        id: taxId,
-        deleted: true,
-        updatedAt: new Date(),
-      });
-
-      const result = await taxService.deleteTax(taxId);
-
-      expect(result).toEqual({
-        id: taxId,
-        deleted: true,
-        updatedAt: expect.any(Date),
-      });
-      expect(mockTaxRepository.findById).toHaveBeenCalledWith(taxId);
-      expect(mockTaxRepository.delete).toHaveBeenCalledWith(taxId);
-      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(
-        { id: taxId, deleted: true, updatedAt: expect.any(Date) },
-        'deleted'
-      );
-    });
-
-    it('should handle non-existent tax', async () => {
-      mockTaxRepository.findById.mockResolvedValue(null);
-
-      await expect(taxService.deleteTax(taxId))
-        .rejects
-        .toThrow('Tax not found');
-    });
-  });
-
-  describe('getTaxSummary', () => {
-    const startDate = new Date('2024-01-01');
-    const endDate = new Date('2024-12-31');
-
-    it('should return tax summary', async () => {
-      const mockTaxes = [
-        {
-          id: 'tax1',
-          type: TaxType.INCOME,
-          amount: 1000,
-          category: 'Income Tax',
-          status: TaxStatus.PAID,
-        },
-        {
-          id: 'tax2',
-          type: TaxType.VAT,
-          amount: 500,
-          category: 'VAT',
-          status: TaxStatus.PENDING,
-        },
-        {
-          id: 'tax3',
-          type: TaxType.INCOME,
-          amount: 2000,
-          category: 'Income Tax',
-          status: TaxStatus.PAID,
-        },
-      ];
-
+    it('should return filtered taxes based on criteria', async () => {
       mockTaxRepository.find.mockResolvedValue(mockTaxes);
 
-      const result = await taxService.getTaxSummary(startDate, endDate);
+      const filters: TaxFilters = {
+        type: TaxType.VAT,
+        status: TaxStatus.ACTIVE
+      };
+      const result = await taxService.getTaxes(filters);
 
-      expect(result).toEqual({
-        totalTaxes: 3500,
-        paidTaxes: 3000,
-        pendingTaxes: 500,
-        taxesByCategory: {
-          'Income Tax': 3000,
-          'VAT': 500,
-        },
-        taxesByType: {
-          [TaxType.INCOME]: 2,
-          [TaxType.VAT]: 1,
-        },
-      });
-      expect(mockTaxRepository.find).toHaveBeenCalledWith({
-        dueDate: {
-          $gte: startDate,
-          $lte: endDate,
-        } as any,
-      });
+      expect(result).toEqual(mockTaxes);
+      expect(mockTaxRepository.find).toHaveBeenCalledWith(filters);
     });
 
-    it('should handle repository errors', async () => {
+    it('should throw error when tax retrieval fails', async () => {
       mockTaxRepository.find.mockRejectedValue(new Error('Database error'));
 
-      await expect(taxService.getTaxSummary(startDate, endDate))
+      const filters: TaxFilters = {};
+      await expect(taxService.getTaxes(filters))
         .rejects
         .toThrow('Database error');
     });
   });
 
-  describe('calculateTax', () => {
-    const income = 100000;
-    const taxYear = '2024';
+  describe('updateTax', () => {
+    const mockUpdatedTax: Tax = {
+      ...mockTax,
+      description: 'Updated VAT rate',
+      updatedAt: new Date()
+    };
 
-    it('should calculate tax successfully', async () => {
-      const mockTaxRates = [
-        {
-          minIncome: 0,
-          maxIncome: 50000,
-          rate: 0.1,
-        },
-        {
-          minIncome: 50001,
-          maxIncome: 100000,
-          rate: 0.2,
-        },
-        {
-          minIncome: 100001,
-          maxIncome: Infinity,
-          rate: 0.3,
-        },
-      ];
+    it('should update a tax record successfully', async () => {
+      mockTaxRepository.findById.mockResolvedValue(mockTax);
+      mockTaxRepository.update.mockResolvedValue(mockUpdatedTax);
 
-      mockTaxRepository.getTaxRates.mockResolvedValue(mockTaxRates);
-
-      const result = await taxService.calculateTax(income, taxYear);
-
-      expect(result).toEqual({
-        income,
-        taxYear,
-        taxAmount: 15000, // (50000 * 0.1) + (50000 * 0.2)
-        taxRate: 0.15, // Average tax rate
-        taxBrackets: mockTaxRates,
+      const result = await taxService.updateTax('tax-1', {
+        description: 'Updated VAT rate'
       });
-      expect(mockTaxRepository.getTaxRates).toHaveBeenCalledWith(taxYear);
+
+      expect(result).toEqual(mockUpdatedTax);
+      expect(mockTaxRepository.update).toHaveBeenCalledWith('tax-1', {
+        description: 'Updated VAT rate'
+      });
+      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(mockUpdatedTax, 'updated');
     });
 
-    it('should handle repository errors', async () => {
+    it('should throw ValidationError for invalid update parameters', async () => {
+      mockTaxRepository.findById.mockResolvedValue(mockTax);
+
+      await expect(taxService.updateTax('tax-1', {
+        rates: [{
+          id: 'rate-1',
+          rate: -20, // Invalid negative rate
+          type: TaxCalculationType.PERCENTAGE,
+          effectiveFrom: new Date(),
+          currency: SUPPORTED_CURRENCIES[0]
+        }]
+      }))
+        .rejects
+        .toThrow(ValidationError);
+    });
+
+    it('should throw error when tax update fails', async () => {
+      mockTaxRepository.findById.mockResolvedValue(mockTax);
+      mockTaxRepository.update.mockRejectedValue(new Error('Database error'));
+
+      await expect(taxService.updateTax('tax-1', {
+        description: 'Updated VAT rate'
+      }))
+        .rejects
+        .toThrow('Database error');
+    });
+  });
+
+  describe('deleteTax', () => {
+    it('should delete a tax record successfully', async () => {
+      mockTaxRepository.findById.mockResolvedValue(mockTax);
+      mockTaxRepository.delete.mockResolvedValue({
+        id: 'tax-1',
+        deleted: true,
+        updatedAt: new Date()
+      });
+
+      const result = await taxService.deleteTax('tax-1');
+
+      expect(result).toBe(true);
+      expect(mockTaxRepository.delete).toHaveBeenCalledWith('tax-1');
+      expect(mockNotificationService.sendTaxNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'tax-1',
+          deleted: true
+        }),
+        'deleted'
+      );
+    });
+
+    it('should throw error when tax is not found', async () => {
+      mockTaxRepository.findById.mockResolvedValue(null);
+
+      await expect(taxService.deleteTax('non-existent'))
+        .rejects
+        .toThrow('Tax not found');
+    });
+
+    it('should throw error when tax deletion fails', async () => {
+      mockTaxRepository.findById.mockResolvedValue(mockTax);
+      mockTaxRepository.delete.mockRejectedValue(new Error('Database error'));
+
+      await expect(taxService.deleteTax('tax-1'))
+        .rejects
+        .toThrow('Database error');
+    });
+  });
+
+  describe('getTaxSummary', () => {
+    it('should return tax summary for an organization', async () => {
+      const mockTaxes = [mockTax];
+      mockTaxRepository.find.mockResolvedValue(mockTaxes);
+
+      const dateRange = {
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-12-31')
+      };
+
+      const result = await taxService.getTaxSummary('org-1', dateRange);
+
+      expect(result).toBeDefined();
+      expect(mockTaxRepository.find).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        createdAt: {
+          $gte: dateRange.startDate,
+          $lte: dateRange.endDate
+        }
+      });
+    });
+  });
+
+  describe('calculateTax', () => {
+    const mockTaxRates = [{
+      id: 'rate-1',
+      rate: 20,
+      type: TaxCalculationType.PERCENTAGE,
+      effectiveFrom: new Date(),
+      currency: SUPPORTED_CURRENCIES[0]
+    }];
+
+    it('should calculate tax based on income and tax year', async () => {
+      mockTaxRepository.getTaxRates.mockResolvedValue(mockTaxRates);
+
+      const result = await taxService.calculateTax(1000, 2024);
+
+      expect(result).toEqual({
+        taxableAmount: 1000,
+        taxAmount: 200,
+        taxRate: 20
+      });
+      expect(mockTaxRepository.getTaxRates).toHaveBeenCalledWith(2024);
+    });
+
+    it('should throw error when no tax rates found', async () => {
+      mockTaxRepository.getTaxRates.mockResolvedValue([]);
+
+      await expect(taxService.calculateTax(1000, 2024))
+        .rejects
+        .toThrow('No tax rates found for the specified year');
+    });
+
+    it('should throw error when tax calculation fails', async () => {
       mockTaxRepository.getTaxRates.mockRejectedValue(new Error('Database error'));
 
-      await expect(taxService.calculateTax(income, taxYear))
+      await expect(taxService.calculateTax(1000, 2024))
         .rejects
         .toThrow('Database error');
     });

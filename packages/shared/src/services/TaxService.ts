@@ -1,4 +1,4 @@
-import { Tax, TaxType, TaxStatus, TaxCalculation, TaxSummary } from '../models/Tax';
+import { Tax, TaxType, TaxStatus, TaxCalculationType, TaxSummary, TaxFilters } from '../models/Tax';
 import { TaxRepository } from '../repositories/TaxRepository';
 import { TransactionRepository } from '../repositories/TransactionRepository';
 import { NotificationService } from './NotificationService';
@@ -12,8 +12,19 @@ export class TaxService {
   ) {}
 
   async createTax(tax: Omit<Tax, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tax> {
-    if (tax.amount <= 0) {
-      throw new ValidationError('Tax amount must be greater than zero');
+    // Validate tax rates
+    if (!tax.rates || tax.rates.length === 0) {
+      throw new ValidationError('Tax must have at least one rate');
+    }
+
+    // Validate each rate
+    for (const rate of tax.rates) {
+      if (rate.rate < 0) {
+        throw new ValidationError('Tax rate cannot be negative');
+      }
+      if (!rate.type || !Object.values(TaxCalculationType).includes(rate.type)) {
+        throw new ValidationError('Invalid tax calculation type');
+      }
     }
 
     const createdTax = await this.taxRepository.create(tax);
@@ -25,7 +36,7 @@ export class TaxService {
     return this.taxRepository.findById(id);
   }
 
-  async getTaxes(filters: Partial<Tax>): Promise<Tax[]> {
+  async getTaxes(filters: TaxFilters): Promise<Tax[]> {
     return this.taxRepository.find(filters);
   }
 
@@ -35,8 +46,16 @@ export class TaxService {
       throw new Error('Tax not found');
     }
 
-    if (tax.amount !== undefined && tax.amount <= 0) {
-      throw new ValidationError('Tax amount must be greater than zero');
+    // Validate rates if provided
+    if (tax.rates) {
+      for (const rate of tax.rates) {
+        if (rate.rate < 0) {
+          throw new ValidationError('Tax rate cannot be negative');
+        }
+        if (!rate.type || !Object.values(TaxCalculationType).includes(rate.type)) {
+          throw new ValidationError('Invalid tax calculation type');
+        }
+      }
     }
 
     const updatedTax = await this.taxRepository.update(id, tax);
@@ -44,75 +63,77 @@ export class TaxService {
     return updatedTax;
   }
 
-  async deleteTax(id: string): Promise<{ id: string; deleted: boolean; updatedAt: Date }> {
+  async deleteTax(id: string): Promise<boolean> {
     const existingTax = await this.taxRepository.findById(id);
     if (!existingTax) {
       throw new Error('Tax not found');
     }
 
     const result = await this.taxRepository.delete(id);
-    await this.notificationService.sendTaxNotification(result, 'deleted');
+    await this.notificationService.sendTaxNotification(
+      { id, deleted: true, updatedAt: new Date() },
+      'deleted'
+    );
     return result;
   }
 
-  async getTaxSummary(startDate: Date, endDate: Date): Promise<TaxSummary> {
+  async getTaxSummary(organizationId: string, dateRange: { startDate: Date; endDate: Date }): Promise<TaxSummary> {
     const taxes = await this.taxRepository.find({
-      dueDate: {
-        $gte: startDate,
-        $lte: endDate,
-      } as any, // Type assertion needed for MongoDB-style query
+      organizationId,
+      createdAt: {
+        $gte: dateRange.startDate,
+        $lte: dateRange.endDate
+      }
     });
 
-    const totalTaxes = taxes.reduce((sum, tax) => sum + tax.amount, 0);
-    const paidTaxes = taxes
-      .filter(tax => tax.status === TaxStatus.PAID)
-      .reduce((sum, tax) => sum + tax.amount, 0);
-    const pendingTaxes = taxes
-      .filter(tax => tax.status === TaxStatus.PENDING)
-      .reduce((sum, tax) => sum + tax.amount, 0);
+    const totalAmount = taxes.reduce((sum, tax) => {
+      const currentRate = tax.rates.find(rate => 
+        rate.effectiveFrom <= new Date() && (!rate.effectiveTo || rate.effectiveTo >= new Date())
+      );
+      return sum + (currentRate?.rate || 0);
+    }, 0);
 
-    const taxesByCategory: Record<string, number> = {};
-    const taxesByType: Record<TaxType, number> = {} as Record<TaxType, number>;
+    const paidAmount = taxes.reduce((sum, tax) => {
+      const paidPayments = tax.payments?.filter(payment => payment.status === 'PAID') || [];
+      return sum + paidPayments.reduce((paymentSum, payment) => paymentSum + payment.amount, 0);
+    }, 0);
 
-    taxes.forEach(tax => {
-      taxesByCategory[tax.category] = (taxesByCategory[tax.category] || 0) + 1;
-      taxesByType[tax.type] = (taxesByType[tax.type] || 0) + 1;
-    });
+    const pendingAmount = totalAmount - paidAmount;
 
     return {
-      totalTaxes,
-      paidTaxes,
-      pendingTaxes,
-      taxesByCategory,
-      taxesByType,
+      totalTaxes: taxes.length,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      taxes
     };
   }
 
-  async calculateTax(income: number, taxYear: string): Promise<TaxCalculation> {
+  async calculateTax(amount: number, taxYear: number): Promise<{
+    taxableAmount: number;
+    taxAmount: number;
+    taxRate: number;
+  }> {
     const taxRates = await this.taxRepository.getTaxRates(taxYear);
-    let totalTax = 0;
-    let remainingIncome = income;
-
-    for (const bracket of taxRates) {
-      const taxableInBracket = Math.min(
-        remainingIncome,
-        bracket.maxIncome - bracket.minIncome
-      );
-      if (taxableInBracket > 0) {
-        totalTax += taxableInBracket * bracket.rate;
-        remainingIncome -= taxableInBracket;
-      }
-      if (remainingIncome <= 0) break;
+    if (!taxRates || taxRates.length === 0) {
+      throw new Error('No tax rates found for the specified year');
     }
 
-    const averageTaxRate = totalTax / income;
+    const currentRate = taxRates.find(rate => 
+      rate.effectiveFrom <= new Date() && (!rate.effectiveTo || rate.effectiveTo >= new Date())
+    );
+
+    if (!currentRate) {
+      throw new Error('No valid tax rate found for the current date');
+    }
+
+    const taxAmount = amount * (currentRate.rate / 100);
+    const taxRate = currentRate.rate;
 
     return {
-      income,
-      taxYear,
-      taxAmount: totalTax,
-      taxRate: averageTaxRate,
-      taxBrackets: taxRates,
+      taxableAmount: amount,
+      taxAmount,
+      taxRate
     };
   }
 } 

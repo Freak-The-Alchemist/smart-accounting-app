@@ -6,7 +6,7 @@ let testEnv;
 
 beforeAll(async () => {
   // Load Firestore rules
-  const rules = readFileSync(resolve(__dirname, 'firestore.rules'), 'utf8');
+  const rules = readFileSync(resolve(__dirname, 'firebase/firestore.rules'), 'utf8');
   
   // Initialize test environment
   testEnv = await initializeTestEnvironment({

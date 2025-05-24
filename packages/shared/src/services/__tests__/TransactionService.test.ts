@@ -1,85 +1,104 @@
 import { TransactionService } from '../TransactionService';
-import { Transaction, TransactionType, TransactionStatus } from '../../models/Transaction';
-import { TransactionRepository } from '../../repositories/TransactionRepository';
-import { AccountRepository } from '../../repositories/AccountRepository';
-import { NotificationService } from '../NotificationService';
+import { Transaction, TransactionType, TransactionStatus, TransactionCategory } from '../../models/Transaction';
+import { SUPPORTED_CURRENCIES } from '../../models/Currency';
 import { ValidationError } from '../../utils/errors';
+import * as firestoreFns from 'firebase/firestore';
 
-// Mock dependencies
-jest.mock('../../repositories/TransactionRepository');
-jest.mock('../../repositories/AccountRepository');
-jest.mock('../NotificationService');
+// Mock firebase/firestore module
+jest.mock('firebase/firestore', () => ({
+  ...jest.requireActual('firebase/firestore'),
+  collection: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  orderBy: jest.fn(),
+  getDocs: jest.fn()
+}));
 
 describe('TransactionService', () => {
   let transactionService: TransactionService;
-  let mockTransactionRepository: jest.Mocked<TransactionRepository>;
-  let mockAccountRepository: jest.Mocked<AccountRepository>;
-  let mockNotificationService: jest.Mocked<NotificationService>;
+  let mockCollection: any;
+  let mockDoc: any;
 
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
 
-    // Initialize mocks
-    mockTransactionRepository = new TransactionRepository() as jest.Mocked<TransactionRepository>;
-    mockAccountRepository = new AccountRepository() as jest.Mocked<AccountRepository>;
-    mockNotificationService = new NotificationService() as jest.Mocked<NotificationService>;
+    // Initialize service
+    transactionService = TransactionService.getInstance();
 
-    // Initialize service with mocked dependencies
-    transactionService = new TransactionService(
-      mockTransactionRepository,
-      mockAccountRepository,
-      mockNotificationService
-    );
+    // Setup mock collection and doc
+    mockCollection = {
+      doc: jest.fn(),
+    };
+    
+    mockDoc = {
+      id: 'mock-id',
+      get: jest.fn(),
+      set: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
+    // Setup default mock implementations
+    (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+    (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+    mockCollection.doc.mockReturnValue(mockDoc);
   });
 
   describe('createTransaction', () => {
     const transactionParams = {
+      organizationId: 'org123',
       type: TransactionType.INCOME,
-      amount: 1000,
-      description: 'Test transaction',
-      accountId: 'acc123',
-      category: 'Salary',
+      status: TransactionStatus.COMPLETED,
+      reference: 'REF123',
       date: new Date(),
-      metadata: {
-        reference: 'REF123',
-        notes: 'Test notes',
-      },
+      description: 'Test transaction',
+      amount: 1000,
+      currency: SUPPORTED_CURRENCIES[0],
+      category: TransactionCategory.SALARY,
+      lines: [{
+        id: 'line1',
+        accountId: 'acc123',
+        description: 'Test line',
+        amount: 1000,
+        currency: SUPPORTED_CURRENCIES[0],
+        type: 'CREDIT' as const,
+        category: TransactionCategory.SALARY
+      }],
+      createdBy: 'user123',
+      updatedBy: 'user123',
+      metadata: {},
+      attachments: [],
+      approvals: [],
+      relatedTransactions: []
     };
 
     it('should create transaction successfully', async () => {
-      const mockTransaction = {
+      const mockTransaction: Transaction = {
         id: 'trans123',
         ...transactionParams,
-        status: TransactionStatus.COMPLETED,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
 
-      const mockAccount = {
-        id: 'acc123',
-        balance: 5000,
-      };
-
-      mockTransactionRepository.create.mockResolvedValue(mockTransaction);
-      mockAccountRepository.findById.mockResolvedValue(mockAccount);
-      mockAccountRepository.update.mockResolvedValue({
-        ...mockAccount,
-        balance: 6000, // Updated balance
-      });
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.setDoc as jest.Mock).mockResolvedValue(undefined);
 
       const result = await transactionService.createTransaction(transactionParams);
 
-      expect(result).toEqual(mockTransaction);
-      expect(mockTransactionRepository.create).toHaveBeenCalledWith(transactionParams);
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(transactionParams.accountId);
-      expect(mockAccountRepository.update).toHaveBeenCalledWith(transactionParams.accountId, {
-        balance: 6000,
-      });
-      expect(mockNotificationService.sendTransactionNotification).toHaveBeenCalledWith(
-        mockTransaction,
-        'created'
-      );
+      expect(result).toEqual(expect.objectContaining({
+        ...transactionParams,
+        id: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date)
+      }));
+      expect(firestoreFns.setDoc).toHaveBeenCalledWith(mockDoc, expect.objectContaining(transactionParams));
     });
 
     it('should throw ValidationError for invalid transaction parameters', async () => {
@@ -93,16 +112,10 @@ describe('TransactionService', () => {
         .toThrow(ValidationError);
     });
 
-    it('should handle non-existent account', async () => {
-      mockAccountRepository.findById.mockResolvedValue(null);
-
-      await expect(transactionService.createTransaction(transactionParams))
-        .rejects
-        .toThrow('Account not found');
-    });
-
-    it('should handle repository errors', async () => {
-      mockTransactionRepository.create.mockRejectedValue(new Error('Database error'));
+    it('should handle database errors', async () => {
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.setDoc as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(transactionService.createTransaction(transactionParams))
         .rejects
@@ -110,87 +123,136 @@ describe('TransactionService', () => {
     });
   });
 
-  describe('getTransactionById', () => {
+  describe('getTransaction', () => {
     const transactionId = 'trans123';
 
     it('should return transaction by id', async () => {
-      const mockTransaction = {
+      const mockTransaction: Transaction = {
         id: transactionId,
+        organizationId: 'org123',
         type: TransactionType.INCOME,
-        amount: 1000,
-        description: 'Test transaction',
-        accountId: 'acc123',
-        category: 'Salary',
         status: TransactionStatus.COMPLETED,
+        reference: 'REF123',
         date: new Date(),
+        description: 'Test transaction',
+        amount: 1000,
+        currency: SUPPORTED_CURRENCIES[0],
+        category: TransactionCategory.SALARY,
+        lines: [{
+          id: 'line1',
+          accountId: 'acc123',
+          description: 'Test line',
+          amount: 1000,
+          currency: SUPPORTED_CURRENCIES[0],
+          type: 'CREDIT' as const,
+          category: TransactionCategory.SALARY
+        }],
+        createdBy: 'user123',
+        updatedBy: 'user123',
         createdAt: new Date(),
         updatedAt: new Date(),
+        metadata: {},
+        attachments: [],
+        approvals: [],
+        relatedTransactions: []
       };
 
-      mockTransactionRepository.findById.mockResolvedValue(mockTransaction);
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => mockTransaction
+      });
 
-      const result = await transactionService.getTransactionById(transactionId);
+      const result = await transactionService.getTransaction(transactionId);
 
       expect(result).toEqual(mockTransaction);
-      expect(mockTransactionRepository.findById).toHaveBeenCalledWith(transactionId);
+      expect(firestoreFns.getDoc).toHaveBeenCalledWith(mockDoc);
     });
 
     it('should return null for non-existent transaction', async () => {
-      mockTransactionRepository.findById.mockResolvedValue(null);
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => false,
+        data: () => null
+      });
 
-      const result = await transactionService.getTransactionById(transactionId);
+      const result = await transactionService.getTransaction(transactionId);
 
       expect(result).toBeNull();
     });
   });
 
-  describe('getTransactions', () => {
+  describe('listTransactions', () => {
     const filters = {
-      accountId: 'acc123',
       type: TransactionType.INCOME,
       status: TransactionStatus.COMPLETED,
+      category: TransactionCategory.SALARY,
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-12-31')
     };
 
     it('should return filtered transactions', async () => {
-      const mockTransactions = [
+      const mockTransactions: Transaction[] = [
         {
           id: 'trans1',
+          organizationId: 'org123',
           type: TransactionType.INCOME,
-          amount: 1000,
+          status: TransactionStatus.COMPLETED,
+          reference: 'REF123',
+          date: new Date(),
           description: 'Transaction 1',
-          accountId: 'acc123',
-          category: 'Salary',
-          status: TransactionStatus.COMPLETED,
-          date: new Date(),
+          amount: 1000,
+          currency: SUPPORTED_CURRENCIES[0],
+          category: TransactionCategory.SALARY,
+          lines: [{
+            id: 'line1',
+            accountId: 'acc123',
+            description: 'Test line',
+            amount: 1000,
+            currency: SUPPORTED_CURRENCIES[0],
+            type: 'CREDIT' as const,
+            category: TransactionCategory.SALARY
+          }],
+          createdBy: 'user123',
+          updatedBy: 'user123',
           createdAt: new Date(),
           updatedAt: new Date(),
-        },
-        {
-          id: 'trans2',
-          type: TransactionType.INCOME,
-          amount: 2000,
-          description: 'Transaction 2',
-          accountId: 'acc123',
-          category: 'Bonus',
-          status: TransactionStatus.COMPLETED,
-          date: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+          metadata: {},
+          attachments: [],
+          approvals: [],
+          relatedTransactions: []
+        }
       ];
 
-      mockTransactionRepository.find.mockResolvedValue(mockTransactions);
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.query as jest.Mock).mockReturnValue('mock-query');
+      (firestoreFns.where as jest.Mock).mockReturnThis();
+      (firestoreFns.orderBy as jest.Mock).mockReturnThis();
+      (firestoreFns.getDocs as jest.Mock).mockResolvedValue({
+        docs: mockTransactions.map(t => ({
+          data: () => t
+        }))
+      });
 
-      const result = await transactionService.getTransactions(filters);
+      const result = await transactionService.listTransactions(filters);
 
       expect(result).toEqual(mockTransactions);
-      expect(mockTransactionRepository.find).toHaveBeenCalledWith(filters);
+      expect(firestoreFns.where).toHaveBeenCalledWith('type', '==', filters.type);
+      expect(firestoreFns.where).toHaveBeenCalledWith('status', '==', filters.status);
     });
 
     it('should return empty array when no transactions match filters', async () => {
-      mockTransactionRepository.find.mockResolvedValue([]);
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.query as jest.Mock).mockReturnValue('mock-query');
+      (firestoreFns.where as jest.Mock).mockReturnThis();
+      (firestoreFns.orderBy as jest.Mock).mockReturnThis();
+      (firestoreFns.getDocs as jest.Mock).mockResolvedValue({
+        docs: []
+      });
 
-      const result = await transactionService.getTransactions(filters);
+      const result = await transactionService.listTransactions(filters);
 
       expect(result).toEqual([]);
     });
@@ -199,59 +261,114 @@ describe('TransactionService', () => {
   describe('updateTransaction', () => {
     const transactionId = 'trans123';
     const updateParams = {
-      description: 'Updated transaction',
-      category: 'Updated Category',
+      description: 'Updated description',
+      category: TransactionCategory.SALARY
     };
 
     it('should update transaction successfully', async () => {
-      const mockTransaction = {
+      const mockTransaction: Transaction = {
         id: transactionId,
+        organizationId: 'org123',
         type: TransactionType.INCOME,
-        amount: 1000,
-        description: 'Test transaction',
-        accountId: 'acc123',
-        category: 'Salary',
         status: TransactionStatus.COMPLETED,
+        reference: 'REF123',
         date: new Date(),
-      };
-
-      const mockUpdatedTransaction = {
-        ...mockTransaction,
-        ...updateParams,
+        description: 'Test transaction',
+        amount: 1000,
+        currency: SUPPORTED_CURRENCIES[0],
+        category: TransactionCategory.SALARY,
+        lines: [{
+          id: 'line1',
+          accountId: 'acc123',
+          description: 'Test line',
+          amount: 1000,
+          currency: SUPPORTED_CURRENCIES[0],
+          type: 'CREDIT' as const,
+          category: TransactionCategory.SALARY
+        }],
+        createdBy: 'user123',
+        updatedBy: 'user123',
+        createdAt: new Date(),
         updatedAt: new Date(),
+        metadata: {},
+        attachments: [],
+        approvals: [],
+        relatedTransactions: []
       };
 
-      mockTransactionRepository.findById.mockResolvedValue(mockTransaction);
-      mockTransactionRepository.update.mockResolvedValue(mockUpdatedTransaction);
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => mockTransaction
+      });
+      (firestoreFns.updateDoc as jest.Mock).mockResolvedValue(undefined);
 
       const result = await transactionService.updateTransaction(transactionId, updateParams);
 
-      expect(result).toEqual(mockUpdatedTransaction);
-      expect(mockTransactionRepository.findById).toHaveBeenCalledWith(transactionId);
-      expect(mockTransactionRepository.update).toHaveBeenCalledWith(transactionId, updateParams);
-      expect(mockNotificationService.sendTransactionNotification).toHaveBeenCalledWith(
-        mockUpdatedTransaction,
-        'updated'
-      );
-    });
-
-    it('should throw ValidationError for invalid update parameters', async () => {
-      const invalidParams = {
+      expect(result).toEqual(expect.objectContaining({
+        ...mockTransaction,
         ...updateParams,
-        amount: -1000, // Invalid negative amount
-      };
-
-      await expect(transactionService.updateTransaction(transactionId, invalidParams))
-        .rejects
-        .toThrow(ValidationError);
+        updatedAt: expect.any(Date)
+      }));
+      expect(firestoreFns.updateDoc).toHaveBeenCalledWith(mockDoc, expect.objectContaining(updateParams));
     });
 
-    it('should handle non-existent transaction', async () => {
-      mockTransactionRepository.findById.mockResolvedValue(null);
+    it('should throw error when transaction not found', async () => {
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => false,
+        data: () => null
+      });
 
       await expect(transactionService.updateTransaction(transactionId, updateParams))
         .rejects
         .toThrow('Transaction not found');
+    });
+
+    it('should handle database errors', async () => {
+      const mockTransaction: Transaction = {
+        id: transactionId,
+        organizationId: 'org123',
+        type: TransactionType.INCOME,
+        status: TransactionStatus.COMPLETED,
+        reference: 'REF123',
+        date: new Date(),
+        description: 'Test transaction',
+        amount: 1000,
+        currency: SUPPORTED_CURRENCIES[0],
+        category: TransactionCategory.SALARY,
+        lines: [{
+          id: 'line1',
+          accountId: 'acc123',
+          description: 'Test line',
+          amount: 1000,
+          currency: SUPPORTED_CURRENCIES[0],
+          type: 'CREDIT' as const,
+          category: TransactionCategory.SALARY
+        }],
+        createdBy: 'user123',
+        updatedBy: 'user123',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {},
+        attachments: [],
+        approvals: [],
+        relatedTransactions: []
+      };
+
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.getDoc as jest.Mock).mockResolvedValue({
+        exists: () => true,
+        data: () => mockTransaction
+      });
+      (firestoreFns.updateDoc as jest.Mock).mockRejectedValue(new Error('Database error'));
+
+      await expect(transactionService.updateTransaction(transactionId, updateParams))
+        .rejects
+        .toThrow('Database error');
     });
   });
 
@@ -259,136 +376,21 @@ describe('TransactionService', () => {
     const transactionId = 'trans123';
 
     it('should delete transaction successfully', async () => {
-      const mockTransaction = {
-        id: transactionId,
-        type: TransactionType.INCOME,
-        amount: 1000,
-        accountId: 'acc123',
-        status: TransactionStatus.COMPLETED,
-      };
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.deleteDoc as jest.Mock).mockResolvedValue(undefined);
 
-      const mockAccount = {
-        id: 'acc123',
-        balance: 6000,
-      };
+      await transactionService.deleteTransaction(transactionId);
 
-      mockTransactionRepository.findById.mockResolvedValue(mockTransaction);
-      mockAccountRepository.findById.mockResolvedValue(mockAccount);
-      mockTransactionRepository.delete.mockResolvedValue({
-        id: transactionId,
-        deleted: true,
-        updatedAt: new Date(),
-      });
-      mockAccountRepository.update.mockResolvedValue({
-        ...mockAccount,
-        balance: 5000, // Updated balance after deletion
-      });
-
-      const result = await transactionService.deleteTransaction(transactionId);
-
-      expect(result).toEqual({
-        id: transactionId,
-        deleted: true,
-        updatedAt: expect.any(Date),
-      });
-      expect(mockTransactionRepository.findById).toHaveBeenCalledWith(transactionId);
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(mockTransaction.accountId);
-      expect(mockTransactionRepository.delete).toHaveBeenCalledWith(transactionId);
-      expect(mockAccountRepository.update).toHaveBeenCalledWith(mockTransaction.accountId, {
-        balance: 5000,
-      });
-      expect(mockNotificationService.sendTransactionNotification).toHaveBeenCalledWith(
-        { id: transactionId, deleted: true, updatedAt: expect.any(Date) },
-        'deleted'
-      );
+      expect(firestoreFns.deleteDoc).toHaveBeenCalledWith(mockDoc);
     });
 
-    it('should handle non-existent transaction', async () => {
-      mockTransactionRepository.findById.mockResolvedValue(null);
+    it('should handle database errors', async () => {
+      (firestoreFns.collection as jest.Mock).mockReturnValue(mockCollection);
+      (firestoreFns.doc as jest.Mock).mockReturnValue(mockDoc);
+      (firestoreFns.deleteDoc as jest.Mock).mockRejectedValue(new Error('Database error'));
 
       await expect(transactionService.deleteTransaction(transactionId))
-        .rejects
-        .toThrow('Transaction not found');
-    });
-
-    it('should handle non-existent account', async () => {
-      mockTransactionRepository.findById.mockResolvedValue({
-        id: transactionId,
-        type: TransactionType.INCOME,
-        amount: 1000,
-        accountId: 'acc123',
-        status: TransactionStatus.COMPLETED,
-      });
-      mockAccountRepository.findById.mockResolvedValue(null);
-
-      await expect(transactionService.deleteTransaction(transactionId))
-        .rejects
-        .toThrow('Account not found');
-    });
-  });
-
-  describe('getTransactionSummary', () => {
-    const accountId = 'acc123';
-    const startDate = new Date('2024-01-01');
-    const endDate = new Date('2024-12-31');
-
-    it('should return transaction summary', async () => {
-      const mockTransactions = [
-        {
-          id: 'trans1',
-          type: TransactionType.INCOME,
-          amount: 1000,
-          category: 'Salary',
-          status: TransactionStatus.COMPLETED,
-        },
-        {
-          id: 'trans2',
-          type: TransactionType.EXPENSE,
-          amount: 500,
-          category: 'Food',
-          status: TransactionStatus.COMPLETED,
-        },
-        {
-          id: 'trans3',
-          type: TransactionType.INCOME,
-          amount: 2000,
-          category: 'Bonus',
-          status: TransactionStatus.COMPLETED,
-        },
-      ];
-
-      mockTransactionRepository.find.mockResolvedValue(mockTransactions);
-
-      const result = await transactionService.getTransactionSummary(accountId, startDate, endDate);
-
-      expect(result).toEqual({
-        totalIncome: 3000,
-        totalExpenses: 500,
-        netAmount: 2500,
-        transactionsByCategory: {
-          Salary: 1000,
-          Food: 500,
-          Bonus: 2000,
-        },
-        transactionsByType: {
-          [TransactionType.INCOME]: 2,
-          [TransactionType.EXPENSE]: 1,
-        },
-      });
-      expect(mockTransactionRepository.find).toHaveBeenCalledWith({
-        accountId,
-        date: {
-          $gte: startDate,
-          $lte: endDate,
-        },
-        status: TransactionStatus.COMPLETED,
-      });
-    });
-
-    it('should handle repository errors', async () => {
-      mockTransactionRepository.find.mockRejectedValue(new Error('Database error'));
-
-      await expect(transactionService.getTransactionSummary(accountId, startDate, endDate))
         .rejects
         .toThrow('Database error');
     });

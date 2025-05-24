@@ -1,5 +1,6 @@
 import { AccountService } from '../AccountService';
-import { Account, AccountType, AccountStatus } from '../../models/Account';
+import { Account, AccountType, AccountStatus, AccountCategory } from '../../models/Account';
+import { SUPPORTED_CURRENCIES } from '../../models/Currency';
 import { AccountRepository } from '../../repositories/AccountRepository';
 import { TransactionRepository } from '../../repositories/TransactionRepository';
 import { NotificationService } from '../NotificationService';
@@ -21,9 +22,25 @@ describe('AccountService', () => {
     jest.clearAllMocks();
 
     // Initialize mocks
-    mockAccountRepository = new AccountRepository() as jest.Mocked<AccountRepository>;
-    mockTransactionRepository = new TransactionRepository() as jest.Mocked<TransactionRepository>;
-    mockNotificationService = new NotificationService() as jest.Mocked<NotificationService>;
+    mockAccountRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      find: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      getAccountsByOrganization: jest.fn(),
+      getAccountsByType: jest.fn(),
+      getAccountsByStatus: jest.fn(),
+      getAccountSummary: jest.fn(),
+    } as any;
+
+    mockTransactionRepository = {
+      find: jest.fn(),
+    } as any;
+
+    mockNotificationService = {
+      sendAccountNotification: jest.fn(),
+    } as any;
 
     // Initialize service with mocked dependencies
     accountService = new AccountService(
@@ -33,26 +50,34 @@ describe('AccountService', () => {
     );
   });
 
-  describe('createAccount', () => {
-    const accountParams = {
-      name: 'Test Account',
-      type: AccountType.CHECKING,
-      currency: 'USD',
-      balance: 1000,
-      description: 'Test account description',
-      metadata: {
-        accountNumber: '1234567890',
-        bankName: 'Test Bank',
-      },
-    };
+  const mockAccount: Account = {
+    id: '1',
+    code: 'ACC001',
+    name: 'Test Account',
+    type: AccountType.ASSET,
+    category: AccountCategory.BANK,
+    status: AccountStatus.ACTIVE,
+    currency: SUPPORTED_CURRENCIES[0],
+    organizationId: 'org1',
+    balances: [],
+    transactions: [],
+    reconciliations: [],
+    createdBy: 'user1',
+    updatedBy: 'user1',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
 
-    it('should create account successfully', async () => {
-      const mockAccount = {
-        id: 'acc123',
-        ...accountParams,
-        status: AccountStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+  describe('createAccount', () => {
+    it('should create a new account', async () => {
+      const accountParams = {
+        code: 'ACC001',
+        name: 'Test Account',
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
       };
 
       mockAccountRepository.create.mockResolvedValue(mockAccount);
@@ -69,7 +94,7 @@ describe('AccountService', () => {
 
     it('should throw ValidationError for invalid account parameters', async () => {
       const invalidParams = {
-        ...accountParams,
+        ...mockAccount,
         name: '', // Invalid empty name
       };
 
@@ -81,122 +106,96 @@ describe('AccountService', () => {
     it('should handle repository errors', async () => {
       mockAccountRepository.create.mockRejectedValue(new Error('Database error'));
 
-      await expect(accountService.createAccount(accountParams))
+      await expect(accountService.createAccount(mockAccount))
         .rejects
         .toThrow('Database error');
     });
   });
 
-  describe('getAccountById', () => {
-    const accountId = 'acc123';
-
-    it('should return account by id', async () => {
-      const mockAccount = {
-        id: accountId,
+  describe('getAccount', () => {
+    it('should return an account by id', async () => {
+      const accountParams = {
+        code: 'ACC001',
         name: 'Test Account',
-        type: AccountType.CHECKING,
-        currency: 'USD',
-        balance: 1000,
-        status: AccountStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
       };
 
       mockAccountRepository.findById.mockResolvedValue(mockAccount);
 
-      const result = await accountService.getAccountById(accountId);
+      const result = await accountService.getAccount(accountParams);
 
       expect(result).toEqual(mockAccount);
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountId);
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountParams.id);
     });
 
     it('should return null for non-existent account', async () => {
       mockAccountRepository.findById.mockResolvedValue(null);
 
-      const result = await accountService.getAccountById(accountId);
+      const result = await accountService.getAccount(mockAccount);
 
       expect(result).toBeNull();
     });
   });
 
   describe('getAccounts', () => {
-    const filters = {
-      type: AccountType.CHECKING,
-      status: AccountStatus.ACTIVE,
-    };
+    it('should return all accounts', async () => {
+      const accountParams = {
+        code: 'ACC001',
+        name: 'Test Account',
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
+      };
 
-    it('should return filtered accounts', async () => {
-      const mockAccounts = [
-        {
-          id: 'acc1',
-          name: 'Account 1',
-          type: AccountType.CHECKING,
-          currency: 'USD',
-          balance: 1000,
-          status: AccountStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'acc2',
-          name: 'Account 2',
-          type: AccountType.CHECKING,
-          currency: 'USD',
-          balance: 2000,
-          status: AccountStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
+      mockAccountRepository.find.mockResolvedValue([mockAccount]);
 
-      mockAccountRepository.find.mockResolvedValue(mockAccounts);
+      const result = await accountService.getAccounts(accountParams);
 
-      const result = await accountService.getAccounts(filters);
-
-      expect(result).toEqual(mockAccounts);
-      expect(mockAccountRepository.find).toHaveBeenCalledWith(filters);
+      expect(result).toEqual([mockAccount]);
+      expect(mockAccountRepository.find).toHaveBeenCalledWith(accountParams);
     });
 
     it('should return empty array when no accounts match filters', async () => {
       mockAccountRepository.find.mockResolvedValue([]);
 
-      const result = await accountService.getAccounts(filters);
+      const result = await accountService.getAccounts(mockAccount);
 
       expect(result).toEqual([]);
     });
   });
 
   describe('updateAccount', () => {
-    const accountId = 'acc123';
-    const updateParams = {
-      name: 'Updated Account',
-      description: 'Updated description',
-    };
-
-    it('should update account successfully', async () => {
-      const mockAccount = {
-        id: accountId,
+    it('should update an account', async () => {
+      const accountParams = {
+        code: 'ACC001',
         name: 'Test Account',
-        type: AccountType.CHECKING,
-        currency: 'USD',
-        balance: 1000,
-        status: AccountStatus.ACTIVE,
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
       };
 
       const mockUpdatedAccount = {
         ...mockAccount,
-        ...updateParams,
+        ...accountParams,
         updatedAt: new Date(),
       };
 
       mockAccountRepository.findById.mockResolvedValue(mockAccount);
       mockAccountRepository.update.mockResolvedValue(mockUpdatedAccount);
 
-      const result = await accountService.updateAccount(accountId, updateParams);
+      const result = await accountService.updateAccount(accountParams.id, accountParams);
 
       expect(result).toEqual(mockUpdatedAccount);
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountId);
-      expect(mockAccountRepository.update).toHaveBeenCalledWith(accountId, updateParams);
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountParams.id);
+      expect(mockAccountRepository.update).toHaveBeenCalledWith(accountParams.id, accountParams);
       expect(mockNotificationService.sendAccountNotification).toHaveBeenCalledWith(
         mockUpdatedAccount,
         'updated'
@@ -205,11 +204,11 @@ describe('AccountService', () => {
 
     it('should throw ValidationError for invalid update parameters', async () => {
       const invalidParams = {
-        ...updateParams,
+        ...mockAccount,
         name: '', // Invalid empty name
       };
 
-      await expect(accountService.updateAccount(accountId, invalidParams))
+      await expect(accountService.updateAccount(mockAccount.id, invalidParams))
         .rejects
         .toThrow(ValidationError);
     });
@@ -217,45 +216,44 @@ describe('AccountService', () => {
     it('should handle non-existent account', async () => {
       mockAccountRepository.findById.mockResolvedValue(null);
 
-      await expect(accountService.updateAccount(accountId, updateParams))
+      await expect(accountService.updateAccount(mockAccount.id, mockAccount))
         .rejects
         .toThrow('Account not found');
     });
   });
 
   describe('deleteAccount', () => {
-    const accountId = 'acc123';
-
-    it('should delete account successfully', async () => {
-      const mockAccount = {
-        id: accountId,
+    it('should delete an account', async () => {
+      const accountParams = {
+        code: 'ACC001',
         name: 'Test Account',
-        type: AccountType.CHECKING,
-        currency: 'USD',
-        balance: 1000,
-        status: AccountStatus.ACTIVE,
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
       };
 
       mockAccountRepository.findById.mockResolvedValue(mockAccount);
       mockTransactionRepository.find.mockResolvedValue([]);
       mockAccountRepository.delete.mockResolvedValue({
-        id: accountId,
+        id: accountParams.id,
         deleted: true,
         updatedAt: new Date(),
       });
 
-      const result = await accountService.deleteAccount(accountId);
+      const result = await accountService.deleteAccount(accountParams.id);
 
       expect(result).toEqual({
-        id: accountId,
+        id: accountParams.id,
         deleted: true,
         updatedAt: expect.any(Date),
       });
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountId);
-      expect(mockTransactionRepository.find).toHaveBeenCalledWith({ accountId });
-      expect(mockAccountRepository.delete).toHaveBeenCalledWith(accountId);
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountParams.id);
+      expect(mockTransactionRepository.find).toHaveBeenCalledWith({ accountId: accountParams.id });
+      expect(mockAccountRepository.delete).toHaveBeenCalledWith(accountParams.id);
       expect(mockNotificationService.sendAccountNotification).toHaveBeenCalledWith(
-        { id: accountId, deleted: true, updatedAt: expect.any(Date) },
+        { id: accountParams.id, deleted: true, updatedAt: expect.any(Date) },
         'deleted'
       );
     });
@@ -263,25 +261,34 @@ describe('AccountService', () => {
     it('should handle non-existent account', async () => {
       mockAccountRepository.findById.mockResolvedValue(null);
 
-      await expect(accountService.deleteAccount(accountId))
+      await expect(accountService.deleteAccount(mockAccount.id))
         .rejects
         .toThrow('Account not found');
     });
 
     it('should prevent deletion of account with transactions', async () => {
       const mockAccount = {
-        id: accountId,
+        id: '1',
+        code: 'ACC001',
         name: 'Test Account',
-        type: AccountType.CHECKING,
-        currency: 'USD',
-        balance: 1000,
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
         status: AccountStatus.ACTIVE,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        balances: [],
+        transactions: [],
+        reconciliations: [],
+        createdBy: 'user1',
+        updatedBy: 'user1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       const mockTransactions = [
         {
           id: 'trans1',
-          accountId,
+          accountId: '1',
           amount: 100,
           type: 'INCOME',
         },
@@ -290,23 +297,94 @@ describe('AccountService', () => {
       mockAccountRepository.findById.mockResolvedValue(mockAccount);
       mockTransactionRepository.find.mockResolvedValue(mockTransactions);
 
-      await expect(accountService.deleteAccount(accountId))
+      await expect(accountService.deleteAccount(mockAccount.id))
         .rejects
         .toThrow('Cannot delete account with existing transactions');
     });
   });
 
-  describe('getAccountSummary', () => {
-    const accountId = 'acc123';
-
-    it('should return account summary', async () => {
-      const mockAccount = {
-        id: accountId,
+  describe('getAccountTransactions', () => {
+    it('should return account transactions', async () => {
+      const accountParams = {
+        code: 'ACC001',
         name: 'Test Account',
-        type: AccountType.CHECKING,
-        currency: 'USD',
-        balance: 1000,
-        status: AccountStatus.ACTIVE,
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
+      };
+
+      mockTransactionRepository.find.mockResolvedValue([
+        {
+          id: 'trans1',
+          accountId: '1',
+          amount: 100,
+          type: 'INCOME',
+        },
+      ]);
+
+      const result = await accountService.getAccountTransactions(accountParams);
+
+      expect(result).toEqual([
+        {
+          id: 'trans1',
+          accountId: '1',
+          amount: 100,
+          type: 'INCOME',
+        },
+      ]);
+      expect(mockTransactionRepository.find).toHaveBeenCalledWith({ accountId: '1' });
+    });
+
+    it('should return empty array when no transactions found', async () => {
+      mockTransactionRepository.find.mockResolvedValue([]);
+
+      const result = await accountService.getAccountTransactions(mockAccount);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getAccountBalance', () => {
+    it('should return account balance', async () => {
+      const accountParams = {
+        code: 'ACC001',
+        name: 'Test Account',
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
+      };
+
+      mockAccountRepository.findById.mockResolvedValue(mockAccount);
+
+      const result = await accountService.getAccountBalance(accountParams);
+
+      expect(result).toEqual(mockAccount.balances[0].amount);
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountParams.id);
+    });
+
+    it('should handle non-existent account', async () => {
+      mockAccountRepository.findById.mockResolvedValue(null);
+
+      await expect(accountService.getAccountBalance(mockAccount))
+        .rejects
+        .toThrow('Account not found');
+    });
+  });
+
+  describe('getAccountSummary', () => {
+    it('should return account summary', async () => {
+      const accountParams = {
+        code: 'ACC001',
+        name: 'Test Account',
+        type: AccountType.ASSET,
+        category: AccountCategory.BANK,
+        currency: SUPPORTED_CURRENCIES[0],
+        organizationId: 'org1',
+        createdBy: 'user1'
       };
 
       const mockTransactions = [
@@ -333,7 +411,7 @@ describe('AccountService', () => {
       mockAccountRepository.findById.mockResolvedValue(mockAccount);
       mockTransactionRepository.find.mockResolvedValue(mockTransactions);
 
-      const result = await accountService.getAccountSummary(accountId);
+      const result = await accountService.getAccountSummary(accountParams.id);
 
       expect(result).toEqual({
         account: mockAccount,
@@ -343,9 +421,9 @@ describe('AccountService', () => {
         transactionCount: 3,
         lastTransactionDate: expect.any(Date),
       });
-      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountId);
+      expect(mockAccountRepository.findById).toHaveBeenCalledWith(accountParams.id);
       expect(mockTransactionRepository.find).toHaveBeenCalledWith({
-        accountId,
+        accountId: accountParams.id,
         status: 'COMPLETED',
       });
     });
@@ -353,23 +431,23 @@ describe('AccountService', () => {
     it('should handle non-existent account', async () => {
       mockAccountRepository.findById.mockResolvedValue(null);
 
-      await expect(accountService.getAccountSummary(accountId))
+      await expect(accountService.getAccountSummary(mockAccount.id))
         .rejects
         .toThrow('Account not found');
     });
 
     it('should handle repository errors', async () => {
       mockAccountRepository.findById.mockResolvedValue({
-        id: accountId,
+        id: mockAccount.id,
         name: 'Test Account',
-        type: AccountType.CHECKING,
+        type: AccountType.ASSET,
         currency: 'USD',
         balance: 1000,
         status: AccountStatus.ACTIVE,
       });
       mockTransactionRepository.find.mockRejectedValue(new Error('Database error'));
 
-      await expect(accountService.getAccountSummary(accountId))
+      await expect(accountService.getAccountSummary(mockAccount.id))
         .rejects
         .toThrow('Database error');
     });

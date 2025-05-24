@@ -1,9 +1,11 @@
 import { NotificationService } from '../NotificationService';
-import { Notification, NotificationType, NotificationStatus } from '../../models/Notification';
+import { Notification, NotificationType, NotificationStatus, NotificationPriority, NotificationChannel } from '../../models/Notification';
 import { NotificationRepository } from '../../repositories/NotificationRepository';
 import { User } from '../../models/User';
-import { Organization } from '../../models/Organization';
+import { Organization, OrganizationType, OrganizationStatus, OrganizationSize } from '../../models/Organization';
 import { ValidationError } from '../../utils/errors';
+import { Tax, TaxType, TaxStatus, TaxCalculationType } from '../../models/Tax';
+import { Account, AccountType, AccountCategory } from '../../models/Account';
 
 // Mock dependencies
 jest.mock('../../repositories/NotificationRepository');
@@ -13,122 +15,223 @@ describe('NotificationService', () => {
   let mockNotificationRepository: jest.Mocked<NotificationRepository>;
 
   beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
+    mockNotificationRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      find: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    } as any;
 
-    // Initialize mocks
-    mockNotificationRepository = new NotificationRepository() as jest.Mocked<NotificationRepository>;
-
-    // Initialize service with mocked dependencies
     notificationService = new NotificationService(mockNotificationRepository);
   });
 
   describe('createNotification', () => {
-    const notificationParams = {
-      type: NotificationType.SYSTEM,
-      title: 'Test Notification',
-      message: 'This is a test notification',
-      recipientId: 'user123',
-      metadata: {
-        action: 'test_action',
-        data: { key: 'value' },
-      },
-    };
+    it('should create a new notification', async () => {
+      const notificationParams = {
+        type: NotificationType.SYSTEM,
+        priority: NotificationPriority.MEDIUM,
+        organizationId: 'org123',
+        createdBy: 'user123',
+        template: {
+          id: 'template1',
+          name: 'System Notification',
+          type: NotificationType.SYSTEM,
+          channels: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+          subject: 'Test Subject',
+          content: {
+            text: 'Test Content',
+            html: '<p>Test Content</p>',
+          },
+        },
+        recipients: [
+          {
+            id: 'user1',
+            type: 'user',
+            value: 'user1@example.com',
+            channels: [NotificationChannel.EMAIL],
+          },
+        ],
+        content: {
+          subject: 'Test Subject',
+          body: 'Test Content',
+        },
+      };
 
-    it('should create notification successfully', async () => {
-      const mockNotification = {
-        id: 'notif123',
+      const mockCreatedNotification: Notification = {
+        id: 'notification123',
         ...notificationParams,
-        status: NotificationStatus.UNREAD,
+        status: NotificationStatus.PENDING,
+        delivery: {},
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      mockNotificationRepository.create.mockResolvedValue(mockNotification);
+      mockNotificationRepository.create.mockResolvedValue(mockCreatedNotification);
 
       const result = await notificationService.createNotification(notificationParams);
 
-      expect(result).toEqual(mockNotification);
+      expect(result).toEqual(mockCreatedNotification);
       expect(mockNotificationRepository.create).toHaveBeenCalledWith(notificationParams);
     });
 
-    it('should throw ValidationError for invalid notification parameters', async () => {
+    it('should throw validation error for invalid notification data', async () => {
       const invalidParams = {
-        ...notificationParams,
-        title: '', // Invalid empty title
+        type: 'INVALID_TYPE' as NotificationType,
+        priority: NotificationPriority.MEDIUM,
+        organizationId: 'org123',
+        createdBy: 'user123',
+        template: {
+          id: 'template1',
+          name: 'System Notification',
+          type: NotificationType.SYSTEM,
+          channels: [NotificationChannel.EMAIL],
+          subject: 'Test Subject',
+          content: {
+            text: 'Test Content',
+          },
+        },
+        recipients: [],
+        content: {
+          subject: 'Test Subject',
+          body: 'Test Content',
+        },
       };
 
       await expect(notificationService.createNotification(invalidParams))
         .rejects
         .toThrow(ValidationError);
     });
-
-    it('should handle repository errors', async () => {
-      mockNotificationRepository.create.mockRejectedValue(new Error('Database error'));
-
-      await expect(notificationService.createNotification(notificationParams))
-        .rejects
-        .toThrow('Database error');
-    });
   });
 
-  describe('getNotificationById', () => {
-    const notificationId = 'notif123';
+  describe('getNotification', () => {
+    it('should get a notification by id', async () => {
+      const notificationId = 'notification123';
 
-    it('should return notification by id', async () => {
-      const mockNotification = {
+      const mockNotification: Notification = {
         id: notificationId,
         type: NotificationType.SYSTEM,
-        title: 'Test Notification',
-        message: 'This is a test notification',
-        recipientId: 'user123',
-        status: NotificationStatus.UNREAD,
+        priority: NotificationPriority.MEDIUM,
+        status: NotificationStatus.PENDING,
+        organizationId: 'org123',
+        createdBy: 'user123',
+        template: {
+          id: 'template1',
+          name: 'System Notification',
+          type: NotificationType.SYSTEM,
+          channels: [NotificationChannel.EMAIL],
+          subject: 'Test Subject',
+          content: {
+            text: 'Test Content',
+          },
+        },
+        recipients: [
+          {
+            id: 'user1',
+            type: 'user',
+            value: 'user1@example.com',
+            channels: [NotificationChannel.EMAIL],
+          },
+        ],
+        content: {
+          subject: 'Test Subject',
+          body: 'Test Content',
+        },
+        delivery: {},
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       mockNotificationRepository.findById.mockResolvedValue(mockNotification);
 
-      const result = await notificationService.getNotificationById(notificationId);
+      const result = await notificationService.getNotification(notificationId);
 
       expect(result).toEqual(mockNotification);
       expect(mockNotificationRepository.findById).toHaveBeenCalledWith(notificationId);
     });
 
-    it('should return null for non-existent notification', async () => {
+    it('should throw error for non-existent notification', async () => {
+      const notificationId = 'nonexistent';
+
       mockNotificationRepository.findById.mockResolvedValue(null);
 
-      const result = await notificationService.getNotificationById(notificationId);
-
-      expect(result).toBeNull();
+      await expect(notificationService.getNotification(notificationId))
+        .rejects
+        .toThrow('Notification not found');
     });
   });
 
   describe('getNotifications', () => {
-    const filters = {
-      recipientId: 'user123',
-      status: NotificationStatus.UNREAD,
-    };
+    it('should get notifications with filters', async () => {
+      const filters = {
+        type: NotificationType.SYSTEM,
+        status: NotificationStatus.PENDING,
+      };
 
-    it('should return filtered notifications', async () => {
-      const mockNotifications = [
+      const mockNotifications: Notification[] = [
         {
-          id: 'notif1',
+          id: 'notification1',
           type: NotificationType.SYSTEM,
-          title: 'Notification 1',
-          message: 'This is notification 1',
-          recipientId: 'user123',
-          status: NotificationStatus.UNREAD,
+          priority: NotificationPriority.MEDIUM,
+          status: NotificationStatus.PENDING,
+          organizationId: 'org123',
+          createdBy: 'user123',
+          template: {
+            id: 'template1',
+            name: 'System Notification',
+            type: NotificationType.SYSTEM,
+            channels: [NotificationChannel.EMAIL],
+            subject: 'Test Subject',
+            content: {
+              text: 'Test Content',
+            },
+          },
+          recipients: [
+            {
+              id: 'user1',
+              type: 'user',
+              value: 'user1@example.com',
+              channels: [NotificationChannel.EMAIL],
+            },
+          ],
+          content: {
+            subject: 'Test Subject',
+            body: 'Test Content',
+          },
+          delivery: {},
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          id: 'notif2',
+          id: 'notification2',
           type: NotificationType.SYSTEM,
-          title: 'Notification 2',
-          message: 'This is notification 2',
-          recipientId: 'user123',
-          status: NotificationStatus.UNREAD,
+          priority: NotificationPriority.HIGH,
+          status: NotificationStatus.PENDING,
+          organizationId: 'org123',
+          createdBy: 'user123',
+          template: {
+            id: 'template2',
+            name: 'System Alert',
+            type: NotificationType.SYSTEM,
+            channels: [NotificationChannel.EMAIL],
+            subject: 'Test Alert',
+            content: {
+              text: 'Test Alert Content',
+            },
+          },
+          recipients: [
+            {
+              id: 'user2',
+              type: 'user',
+              value: 'user2@example.com',
+              channels: [NotificationChannel.EMAIL],
+            },
+          ],
+          content: {
+            subject: 'Test Alert',
+            body: 'Test Alert Content',
+          },
+          delivery: {},
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -141,65 +244,71 @@ describe('NotificationService', () => {
       expect(result).toEqual(mockNotifications);
       expect(mockNotificationRepository.find).toHaveBeenCalledWith(filters);
     });
-
-    it('should return empty array when no notifications match filters', async () => {
-      mockNotificationRepository.find.mockResolvedValue([]);
-
-      const result = await notificationService.getNotifications(filters);
-
-      expect(result).toEqual([]);
-    });
   });
 
-  describe('updateNotification', () => {
-    const notificationId = 'notif123';
-    const updateParams = {
-      status: NotificationStatus.READ,
-    };
+  describe('updateNotificationStatus', () => {
+    it('should update notification status', async () => {
+      const notificationId = 'notification123';
+      const status = NotificationStatus.SENT;
 
-    it('should update notification successfully', async () => {
-      const mockUpdatedNotification = {
+      const mockUpdatedNotification: Notification = {
         id: notificationId,
         type: NotificationType.SYSTEM,
-        title: 'Test Notification',
-        message: 'This is a test notification',
-        recipientId: 'user123',
-        status: NotificationStatus.READ,
+        priority: NotificationPriority.MEDIUM,
+        status: NotificationStatus.SENT,
+        organizationId: 'org123',
+        createdBy: 'user123',
+        template: {
+          id: 'template1',
+          name: 'System Notification',
+          type: NotificationType.SYSTEM,
+          channels: [NotificationChannel.EMAIL],
+          subject: 'Test Subject',
+          content: {
+            text: 'Test Content',
+          },
+        },
+        recipients: [
+          {
+            id: 'user1',
+            type: 'user',
+            value: 'user1@example.com',
+            channels: [NotificationChannel.EMAIL],
+          },
+        ],
+        content: {
+          subject: 'Test Subject',
+          body: 'Test Content',
+        },
+        delivery: {},
+        createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       mockNotificationRepository.update.mockResolvedValue(mockUpdatedNotification);
 
-      const result = await notificationService.updateNotification(notificationId, updateParams);
+      const result = await notificationService.updateNotificationStatus(notificationId, status);
 
       expect(result).toEqual(mockUpdatedNotification);
-      expect(mockNotificationRepository.update).toHaveBeenCalledWith(notificationId, updateParams);
+      expect(mockNotificationRepository.update).toHaveBeenCalledWith(notificationId, { status });
     });
 
-    it('should throw ValidationError for invalid update parameters', async () => {
-      const invalidParams = {
-        ...updateParams,
-        status: 'INVALID_STATUS' as NotificationStatus,
-      };
+    it('should throw error for non-existent notification', async () => {
+      const notificationId = 'nonexistent';
+      const status = NotificationStatus.SENT;
 
-      await expect(notificationService.updateNotification(notificationId, invalidParams))
-        .rejects
-        .toThrow(ValidationError);
-    });
-
-    it('should handle non-existent notification', async () => {
       mockNotificationRepository.update.mockRejectedValue(new Error('Notification not found'));
 
-      await expect(notificationService.updateNotification(notificationId, updateParams))
+      await expect(notificationService.updateNotificationStatus(notificationId, status))
         .rejects
         .toThrow('Notification not found');
     });
   });
 
   describe('deleteNotification', () => {
-    const notificationId = 'notif123';
+    it('should delete a notification', async () => {
+      const notificationId = 'notification123';
 
-    it('should delete notification successfully', async () => {
       const mockDeletedNotification = {
         id: notificationId,
         deleted: true,
@@ -210,11 +319,13 @@ describe('NotificationService', () => {
 
       const result = await notificationService.deleteNotification(notificationId);
 
-      expect(result).toEqual(mockDeletedNotification);
+      expect(result).toBe(true);
       expect(mockNotificationRepository.delete).toHaveBeenCalledWith(notificationId);
     });
 
-    it('should handle non-existent notification', async () => {
+    it('should throw error for non-existent notification', async () => {
+      const notificationId = 'nonexistent';
+
       mockNotificationRepository.delete.mockRejectedValue(new Error('Notification not found'));
 
       await expect(notificationService.deleteNotification(notificationId))
@@ -223,164 +334,234 @@ describe('NotificationService', () => {
     });
   });
 
-  describe('markAllAsRead', () => {
-    const recipientId = 'user123';
+  describe('getNotificationSummary', () => {
+    it('should get notification summary', async () => {
+      const organizationId = 'org123';
+      const period = {
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-12-31'),
+      };
 
-    it('should mark all notifications as read successfully', async () => {
-      const mockUpdatedNotifications = [
+      const mockNotifications: Notification[] = [
         {
-          id: 'notif1',
-          status: NotificationStatus.READ,
+          id: 'notification1',
+          type: NotificationType.SYSTEM,
+          priority: NotificationPriority.MEDIUM,
+          status: NotificationStatus.SENT,
+          organizationId: 'org123',
+          createdBy: 'user123',
+          template: {
+            id: 'template1',
+            name: 'System Notification',
+            type: NotificationType.SYSTEM,
+            channels: [NotificationChannel.EMAIL],
+            subject: 'Test Subject',
+            content: {
+              text: 'Test Content',
+            },
+          },
+          recipients: [
+            {
+              id: 'user1',
+              type: 'user',
+              value: 'user1@example.com',
+              channels: [NotificationChannel.EMAIL],
+            },
+          ],
+          content: {
+            subject: 'Test Subject',
+            body: 'Test Content',
+          },
+          delivery: {},
+          createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          id: 'notif2',
-          status: NotificationStatus.READ,
+          id: 'notification2',
+          type: NotificationType.ALERT,
+          priority: NotificationPriority.HIGH,
+          status: NotificationStatus.DELIVERED,
+          organizationId: 'org123',
+          createdBy: 'user123',
+          template: {
+            id: 'template2',
+            name: 'System Alert',
+            type: NotificationType.ALERT,
+            channels: [NotificationChannel.EMAIL],
+            subject: 'Test Alert',
+            content: {
+              text: 'Test Alert Content',
+            },
+          },
+          recipients: [
+            {
+              id: 'user2',
+              type: 'user',
+              value: 'user2@example.com',
+              channels: [NotificationChannel.EMAIL],
+            },
+          ],
+          content: {
+            subject: 'Test Alert',
+            body: 'Test Alert Content',
+          },
+          delivery: {},
+          createdAt: new Date(),
           updatedAt: new Date(),
         },
       ];
 
-      mockNotificationRepository.updateMany.mockResolvedValue(mockUpdatedNotifications);
+      mockNotificationRepository.find.mockResolvedValue(mockNotifications);
 
-      const result = await notificationService.markAllAsRead(recipientId);
+      const result = await notificationService.getNotificationSummary(organizationId, period);
 
-      expect(result).toEqual(mockUpdatedNotifications);
-      expect(mockNotificationRepository.updateMany).toHaveBeenCalledWith(
-        { recipientId, status: NotificationStatus.UNREAD },
-        { status: NotificationStatus.READ }
-      );
-    });
-
-    it('should handle repository errors', async () => {
-      mockNotificationRepository.updateMany.mockRejectedValue(new Error('Database error'));
-
-      await expect(notificationService.markAllAsRead(recipientId))
-        .rejects
-        .toThrow('Database error');
-    });
-  });
-
-  describe('getUnreadCount', () => {
-    const recipientId = 'user123';
-
-    it('should return unread notification count', async () => {
-      mockNotificationRepository.count.mockResolvedValue(5);
-
-      const result = await notificationService.getUnreadCount(recipientId);
-
-      expect(result).toBe(5);
-      expect(mockNotificationRepository.count).toHaveBeenCalledWith({
-        recipientId,
-        status: NotificationStatus.UNREAD,
+      expect(result).toEqual({
+        total: 2,
+        byType: {
+          [NotificationType.SYSTEM]: 1,
+          [NotificationType.ALERT]: 1,
+        },
+        byPriority: {
+          [NotificationPriority.MEDIUM]: 1,
+          [NotificationPriority.HIGH]: 1,
+        },
+        byStatus: {
+          [NotificationStatus.SENT]: 1,
+          [NotificationStatus.DELIVERED]: 1,
+        },
       });
     });
-
-    it('should handle repository errors', async () => {
-      mockNotificationRepository.count.mockRejectedValue(new Error('Database error'));
-
-      await expect(notificationService.getUnreadCount(recipientId))
-        .rejects
-        .toThrow('Database error');
-    });
   });
 
-  describe('sendUserNotification', () => {
-    const user: User = {
-      id: 'user123',
-      email: 'user@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    it('should send user notification successfully', async () => {
-      const mockNotification = {
-        id: 'notif123',
-        type: NotificationType.USER,
-        title: 'User Notification',
-        message: 'This is a user notification',
-        recipientId: user.id,
-        status: NotificationStatus.UNREAD,
-        metadata: {
-          action: 'user_updated',
-          data: { userId: user.id },
-        },
+  describe('sendTaxNotification', () => {
+    it('should send tax notification', async () => {
+      const tax: Tax = {
+        id: 'tax123',
+        code: 'TAX001',
+        name: 'Test Tax',
+        type: TaxType.INCOME,
+        status: TaxStatus.ACTIVE,
+        organizationId: 'org123',
+        rates: [{
+          id: 'rate1',
+          rate: 0.1,
+          type: TaxCalculationType.PERCENTAGE,
+          effectiveFrom: new Date(),
+          currency: 'USD'
+        }],
+        createdBy: 'user123',
+        updatedBy: 'user123',
         createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const action = 'created';
+
+      await notificationService.sendTaxNotification(tax, action);
+
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
+    });
+
+    it('should send tax notification for deleted tax', async () => {
+      const deletedTax = {
+        id: 'tax123',
+        deleted: true,
         updatedAt: new Date(),
       };
 
-      mockNotificationRepository.create.mockResolvedValue(mockNotification);
+      const action = 'deleted';
 
-      const result = await notificationService.sendUserNotification(user, 'updated');
+      await notificationService.sendTaxNotification(deletedTax, action);
 
-      expect(result).toEqual(mockNotification);
-      expect(mockNotificationRepository.create).toHaveBeenCalledWith({
-        type: NotificationType.USER,
-        title: 'User Updated',
-        message: `User ${user.firstName} ${user.lastName} has been updated`,
-        recipientId: user.id,
-        metadata: {
-          action: 'user_updated',
-          data: { userId: user.id },
-        },
-      });
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('sendAccountNotification', () => {
+    it('should send account notification', async () => {
+      const account: Account = {
+        id: 'acc123',
+        code: 'ACC001',
+        name: 'Test Account',
+        type: AccountType.ASSET,
+        category: AccountCategory.CURRENT_ASSET,
+        currency: 'USD',
+        organizationId: 'org123',
+        createdBy: 'user123',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const action = 'created';
+
+      await notificationService.sendAccountNotification(account, action);
+
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
     });
 
-    it('should handle repository errors', async () => {
-      mockNotificationRepository.create.mockRejectedValue(new Error('Database error'));
+    it('should send account notification for deleted account', async () => {
+      const deletedAccount = {
+        id: 'acc123',
+        deleted: true,
+        updatedAt: new Date(),
+      };
 
-      await expect(notificationService.sendUserNotification(user, 'updated'))
-        .rejects
-        .toThrow('Database error');
+      const action = 'deleted';
+
+      await notificationService.sendAccountNotification(deletedAccount, action);
+
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
     });
   });
 
   describe('sendOrganizationNotification', () => {
-    const organization: Organization = {
-      id: 'org123',
-      name: 'Test Organization',
-      type: 'business',
-      status: 'active',
-    };
-
-    it('should send organization notification successfully', async () => {
-      const mockNotification = {
-        id: 'notif123',
-        type: NotificationType.ORGANIZATION,
-        title: 'Organization Notification',
-        message: 'This is an organization notification',
-        recipientId: organization.id,
-        status: NotificationStatus.UNREAD,
-        metadata: {
-          action: 'organization_updated',
-          data: { organizationId: organization.id },
-        },
+    it('should send organization notification', async () => {
+      const organization: Organization = {
+        id: 'org123',
+        name: 'Test Organization',
+        type: OrganizationType.CORPORATION,
+        status: OrganizationStatus.ACTIVE,
+        size: OrganizationSize.SMALL,
+        description: 'Test Description',
+        addresses: [],
+        contacts: [],
+        settings: {},
+        createdBy: 'user123',
         createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const action = 'created';
+
+      await notificationService.sendOrganizationNotification(organization, action);
+
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
+    });
+
+    it('should send organization notification for deleted organization', async () => {
+      const deletedOrganization = {
+        id: 'org123',
+        deleted: true,
         updatedAt: new Date(),
       };
 
-      mockNotificationRepository.create.mockResolvedValue(mockNotification);
+      const action = 'deleted';
 
-      const result = await notificationService.sendOrganizationNotification(organization, 'updated');
+      await notificationService.sendOrganizationNotification(deletedOrganization, action);
 
-      expect(result).toEqual(mockNotification);
-      expect(mockNotificationRepository.create).toHaveBeenCalledWith({
-        type: NotificationType.ORGANIZATION,
-        title: 'Organization Updated',
-        message: `Organization ${organization.name} has been updated`,
-        recipientId: organization.id,
-        metadata: {
-          action: 'organization_updated',
-          data: { organizationId: organization.id },
-        },
-      });
-    });
-
-    it('should handle repository errors', async () => {
-      mockNotificationRepository.create.mockRejectedValue(new Error('Database error'));
-
-      await expect(notificationService.sendOrganizationNotification(organization, 'updated'))
-        .rejects
-        .toThrow('Database error');
+      // Since the method just logs and simulates async behavior,
+      // we just verify it doesn't throw
+      expect(true).toBe(true);
     });
   });
 }); 

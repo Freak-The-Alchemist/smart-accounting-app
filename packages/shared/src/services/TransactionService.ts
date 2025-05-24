@@ -1,22 +1,27 @@
 import { 
-  where, 
-  orderBy, 
-  startAt, 
-  endAt,
-  QueryConstraint 
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  DocumentData,
+  QueryConstraint
 } from 'firebase/firestore';
-import { BaseService } from './BaseService';
-import { Transaction, TransactionType, TransactionSummary, TransactionFilters } from '../models/Transaction';
-import { Currency } from '../models/Currency';
 import { firestore } from '../firebase/config';
+import { Transaction, TransactionType, TransactionStatus, TransactionCategory, TransactionSummary, TransactionFilters, TransactionAttachment } from '../models/Transaction';
+import { CurrencyCode, SUPPORTED_CURRENCIES } from '../models/Currency';
+import { ValidationError } from '../utils/errors';
 
-export class TransactionService extends BaseService<Transaction> {
+export class TransactionService {
   private static instance: TransactionService;
   private readonly collection = 'transactions';
 
-  private constructor() {
-    super('transactions');
-  }
+  private constructor() {}
 
   static getInstance(): TransactionService {
     if (!TransactionService.instance) {
@@ -25,133 +30,37 @@ export class TransactionService extends BaseService<Transaction> {
     return TransactionService.instance;
   }
 
-  async getTransactionsByDateRange(
-    userId: string,
-    startDate: Date,
-    endDate: Date,
-    type?: TransactionType
-  ): Promise<Transaction[]> {
-    const constraints: QueryConstraint[] = [
-      where('date', '>=', startDate),
-      where('date', '<=', endDate),
-      orderBy('date', 'desc')
-    ];
-
-    if (type) {
-      constraints.push(where('type', '==', type));
-    }
-
-    return this.getByUserId(userId, constraints);
-  }
-
-  async getTransactionsByCategory(
-    userId: string,
-    category: string,
-    type?: TransactionType
-  ): Promise<Transaction[]> {
-    const constraints: QueryConstraint[] = [
-      where('category', '==', category),
-      orderBy('date', 'desc')
-    ];
-
-    if (type) {
-      constraints.push(where('type', '==', type));
-    }
-
-    return this.getByUserId(userId, constraints);
-  }
-
-  async getTransactionSummary(userId: string, startDate?: Date, endDate?: Date): Promise<TransactionSummary> {
-    const transactions = await this.listTransactions({
-      startDate,
-      endDate,
-    });
-
-    const summary: TransactionSummary = {
-      totalIncome: 0,
-      totalExpenses: 0,
-      netAmount: 0,
-      byCategory: {},
-      byMonth: {},
-      byCurrency: {} as Record<Currency, { income: number; expenses: number; net: number }>,
-    };
-
-    // Initialize currency records
-    Object.values(Currency).forEach(currency => {
-      summary.byCurrency[currency] = { income: 0, expenses: 0, net: 0 };
-    });
-
-    transactions.forEach(transaction => {
-      const month = transaction.date.toISOString().slice(0, 7);
-
-      // Update totals
-      if (transaction.type === 'income') {
-        summary.totalIncome += transaction.amount;
-        summary.byCurrency[transaction.currency].income += transaction.amount;
-      } else if (transaction.type === 'expense') {
-        summary.totalExpenses += transaction.amount;
-        summary.byCurrency[transaction.currency].expenses += transaction.amount;
-      }
-
-      // Update category breakdown
-      const categoryId = transaction.category.id;
-      if (!summary.byCategory[categoryId]) {
-        summary.byCategory[categoryId] = {
-          name: transaction.category.name,
-          type: transaction.type,
-          total: 0,
-          count: 0,
-        };
-      }
-      summary.byCategory[categoryId].total += transaction.amount;
-      summary.byCategory[categoryId].count++;
-
-      // Update monthly breakdown
-      if (!summary.byMonth[month]) {
-        summary.byMonth[month] = { income: 0, expenses: 0, net: 0 };
-      }
-      if (transaction.type === 'income') {
-        summary.byMonth[month].income += transaction.amount;
-      } else if (transaction.type === 'expense') {
-        summary.byMonth[month].expenses += transaction.amount;
-      }
-      summary.byMonth[month].net = summary.byMonth[month].income - summary.byMonth[month].expenses;
-    });
-
-    // Calculate net amounts
-    summary.netAmount = summary.totalIncome - summary.totalExpenses;
-    Object.values(Currency).forEach(currency => {
-      summary.byCurrency[currency].net = 
-        summary.byCurrency[currency].income - summary.byCurrency[currency].expenses;
-    });
-
-    return summary;
-  }
-
   async createTransaction(transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>): Promise<Transaction> {
+    // Validate transaction amount
+    if (transaction.amount < 0) {
+      throw new ValidationError('Amount must be non-negative');
+    }
+
     const now = new Date();
+    const docRef = doc(collection(firestore, this.collection));
     
     const newTransaction: Transaction = {
       ...transaction,
-      id: firestore.collection(this.collection).doc().id,
+      id: docRef.id,
       createdAt: now,
       updatedAt: now,
     };
 
-    await firestore.collection(this.collection).doc(newTransaction.id).set(newTransaction);
+    await setDoc(docRef, newTransaction);
     return newTransaction;
   }
 
   async getTransaction(id: string): Promise<Transaction | null> {
-    const doc = await firestore.collection(this.collection).doc(id).get();
-    return doc.exists ? (doc.data() as Transaction) : null;
+    const docRef = doc(firestore, this.collection, id);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as Transaction) : null;
   }
 
   async updateTransaction(id: string, updates: Partial<Transaction>): Promise<Transaction> {
-    const transactionRef = firestore.collection(this.collection).doc(id);
-    const doc = await transactionRef.get();
+    const docRef = doc(firestore, this.collection, id);
+    const docSnap = await getDoc(docRef);
 
-    if (!doc.exists) {
+    if (!docSnap.exists()) {
       throw new Error('Transaction not found');
     }
 
@@ -160,46 +69,44 @@ export class TransactionService extends BaseService<Transaction> {
       updatedAt: new Date(),
     };
 
-    await transactionRef.update(updatedTransaction);
-    return { ...doc.data() as Transaction, ...updatedTransaction };
+    await updateDoc(docRef, updatedTransaction);
+    return { ...docSnap.data() as Transaction, ...updatedTransaction };
   }
 
   async deleteTransaction(id: string): Promise<void> {
-    await firestore.collection(this.collection).doc(id).delete();
+    const docRef = doc(firestore, this.collection, id);
+    await deleteDoc(docRef);
   }
 
   async listTransactions(filters?: TransactionFilters): Promise<Transaction[]> {
-    let query = firestore.collection(this.collection);
+    const constraints: QueryConstraint[] = [];
 
     if (filters?.type) {
-      query = query.where('type', '==', filters.type);
+      constraints.push(where('type', '==', filters.type));
     }
 
     if (filters?.status) {
-      query = query.where('status', '==', filters.status);
+      constraints.push(where('status', '==', filters.status));
     }
 
-    if (filters?.categoryId) {
-      query = query.where('category.id', '==', filters.categoryId);
+    if (filters?.category) {
+      constraints.push(where('category', '==', filters.category));
     }
 
     if (filters?.startDate) {
-      query = query.where('date', '>=', filters.startDate);
+      constraints.push(where('date', '>=', filters.startDate));
     }
 
     if (filters?.endDate) {
-      query = query.where('date', '<=', filters.endDate);
+      constraints.push(where('date', '<=', filters.endDate));
     }
 
     if (filters?.currency) {
-      query = query.where('currency', '==', filters.currency);
+      constraints.push(where('currency', '==', filters.currency));
     }
 
-    if (filters?.tags && filters.tags.length > 0) {
-      query = query.where('tags', 'array-contains-any', filters.tags);
-    }
-
-    const snapshot = await query.get();
+    const q = query(collection(firestore, this.collection), ...constraints);
+    const snapshot = await getDocs(q);
     let transactions = snapshot.docs.map(doc => doc.data() as Transaction);
 
     // Apply additional filters that can't be done in Firestore
@@ -215,26 +122,106 @@ export class TransactionService extends BaseService<Transaction> {
       const searchLower = filters.search.toLowerCase();
       transactions = transactions.filter(t => 
         t.description.toLowerCase().includes(searchLower) ||
-        t.notes?.toLowerCase().includes(searchLower) ||
-        t.category.name.toLowerCase().includes(searchLower)
+        t.reference.toLowerCase().includes(searchLower)
       );
     }
 
     return transactions;
   }
 
-  async updateTransactionStatus(id: string, status: Transaction['status']): Promise<Transaction> {
+  async getTransactionSummary(userId: string, startDate?: Date, endDate?: Date): Promise<TransactionSummary> {
+    const transactions = await this.listTransactions({
+      startDate,
+      endDate,
+    });
+
+    const summary: TransactionSummary = {
+      total: 0,
+      byType: Object.values(TransactionType).reduce((acc, type) => ({ ...acc, [type]: 0 }), {} as Record<TransactionType, number>),
+      byStatus: Object.values(TransactionStatus).reduce((acc, status) => ({ ...acc, [status]: 0 }), {} as Record<TransactionStatus, number>),
+      byCategory: Object.values(TransactionCategory).reduce((acc, category) => ({ ...acc, [category]: 0 }), {} as Record<TransactionCategory, number>),
+      byCurrency: SUPPORTED_CURRENCIES.reduce((acc, currency) => ({ ...acc, [currency]: 0 }), {} as Record<CurrencyCode, number>),
+      byPeriod: {
+        daily: {},
+        weekly: {},
+        monthly: {},
+        yearly: {}
+      },
+      amounts: {
+        total: 0,
+        average: 0,
+        minimum: 0,
+        maximum: 0,
+        byType: Object.values(TransactionType).reduce((acc, type) => ({ ...acc, [type]: 0 }), {} as Record<TransactionType, number>),
+        byCategory: Object.values(TransactionCategory).reduce((acc, category) => ({ ...acc, [category]: 0 }), {} as Record<TransactionCategory, number>)
+      },
+      performance: {
+        approvalRate: 0,
+        averageApprovalTime: 0,
+        reversalRate: 0,
+        errorRate: 0
+      }
+    };
+
+    transactions.forEach(transaction => {
+      // Update totals
+      summary.total += transaction.amount;
+      summary.byType[transaction.type] += transaction.amount;
+      summary.byStatus[transaction.status] += transaction.amount;
+      if (transaction.category) {
+        summary.byCategory[transaction.category] += transaction.amount;
+      }
+      summary.byCurrency[transaction.currency] += transaction.amount;
+
+      // Update amounts
+      summary.amounts.byType[transaction.type] += transaction.amount;
+      if (transaction.category) {
+        summary.amounts.byCategory[transaction.category] += transaction.amount;
+      }
+
+      // Update period breakdowns
+      const date = transaction.date;
+      const dailyKey = date.toISOString().split('T')[0];
+      const weeklyKey = `${date.getFullYear()}-W${Math.ceil((date.getDate() + date.getDay()) / 7)}`;
+      const monthlyKey = date.toISOString().slice(0, 7);
+      const yearlyKey = date.getFullYear().toString();
+
+      summary.byPeriod.daily[dailyKey] = (summary.byPeriod.daily[dailyKey] || 0) + transaction.amount;
+      summary.byPeriod.weekly[weeklyKey] = (summary.byPeriod.weekly[weeklyKey] || 0) + transaction.amount;
+      summary.byPeriod.monthly[monthlyKey] = (summary.byPeriod.monthly[monthlyKey] || 0) + transaction.amount;
+      summary.byPeriod.yearly[yearlyKey] = (summary.byPeriod.yearly[yearlyKey] || 0) + transaction.amount;
+    });
+
+    // Calculate averages and min/max
+    const amounts = transactions.map(t => t.amount);
+    summary.amounts.average = amounts.length ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0;
+    summary.amounts.minimum = amounts.length ? Math.min(...amounts) : 0;
+    summary.amounts.maximum = amounts.length ? Math.max(...amounts) : 0;
+
+    // Calculate performance metrics
+    const approvedTransactions = transactions.filter(t => t.status === TransactionStatus.COMPLETED);
+    const reversedTransactions = transactions.filter(t => t.status === TransactionStatus.REVERSED);
+    const failedTransactions = transactions.filter(t => t.status === TransactionStatus.FAILED);
+
+    summary.performance.approvalRate = transactions.length ? approvedTransactions.length / transactions.length : 0;
+    summary.performance.reversalRate = transactions.length ? reversedTransactions.length / transactions.length : 0;
+    summary.performance.errorRate = transactions.length ? failedTransactions.length / transactions.length : 0;
+
+    return summary;
+  }
+
+  async updateTransactionStatus(id: string, status: TransactionStatus): Promise<Transaction> {
     return this.updateTransaction(id, { status });
   }
 
-  async addAttachment(id: string, attachment: Transaction['attachments'][0]): Promise<Transaction> {
+  async addAttachment(id: string, attachment: TransactionAttachment): Promise<Transaction> {
     const transaction = await this.getTransaction(id);
     if (!transaction) {
       throw new Error('Transaction not found');
     }
 
-    const attachments = [...(transaction.attachments || []), attachment];
-    return this.updateTransaction(id, { attachments });
+    const updatedAttachments = [...(transaction.attachments || []), attachment];
+    return this.updateTransaction(id, { attachments: updatedAttachments });
   }
 
   async removeAttachment(id: string, attachmentId: string): Promise<Transaction> {

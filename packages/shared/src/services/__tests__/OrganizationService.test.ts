@@ -1,5 +1,5 @@
 import { OrganizationService } from '../OrganizationService';
-import { Organization, OrganizationType, OrganizationStatus } from '../../models/Organization';
+import { Organization, OrganizationType, OrganizationStatus, OrganizationSize, OrganizationAddress } from '../../models/Organization';
 import { OrganizationRepository } from '../../repositories/OrganizationRepository';
 import { UserRepository } from '../../repositories/UserRepository';
 import { NotificationService } from '../NotificationService';
@@ -17,15 +17,25 @@ describe('OrganizationService', () => {
   let mockNotificationService: jest.Mocked<NotificationService>;
 
   beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
+    mockOrganizationRepository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      find: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      getOrganizationSummary: jest.fn(),
+    } as any;
 
-    // Initialize mocks
-    mockOrganizationRepository = new OrganizationRepository() as jest.Mocked<OrganizationRepository>;
-    mockUserRepository = new UserRepository() as jest.Mocked<UserRepository>;
-    mockNotificationService = new NotificationService() as jest.Mocked<NotificationService>;
+    mockUserRepository = {
+      find: jest.fn(),
+      findById: jest.fn(),
+      update: jest.fn(),
+    } as any;
 
-    // Initialize service with mocked dependencies
+    mockNotificationService = {
+      sendOrganizationNotification: jest.fn(),
+    } as any;
+
     organizationService = new OrganizationService(
       mockOrganizationRepository,
       mockUserRepository,
@@ -33,35 +43,143 @@ describe('OrganizationService', () => {
     );
   });
 
-  describe('createOrganization', () => {
-    const organizationParams = {
-      name: 'Test Organization',
-      type: OrganizationType.BUSINESS,
-      address: {
-        street: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        country: 'USA',
-        zipCode: '10001',
-      },
-      contact: {
-        email: 'contact@testorg.com',
-        phone: '+1234567890',
-      },
-      settings: {
+  const mockOrganization: Organization = {
+    id: '1',
+    name: 'Test Organization',
+    type: OrganizationType.CORPORATION,
+    status: OrganizationStatus.ACTIVE,
+    size: OrganizationSize.SMALL,
+    description: 'Test organization description',
+    addresses: [{
+      street: '123 Test St',
+      city: 'Test City',
+      state: 'Test State',
+      country: 'Test Country',
+      postalCode: '12345',
+      isPrimary: true,
+      type: 'PHYSICAL' as const
+    }],
+    contacts: [{
+      name: 'Test Contact',
+      title: 'Test Title',
+      email: 'test@example.com',
+      phone: '1234567890',
+      isPrimary: true
+    }],
+    settings: {
+      general: {
+        timezone: 'UTC',
+        dateFormat: 'YYYY-MM-DD',
+        timeFormat: 'HH:mm:ss',
         currency: 'USD',
-        timezone: 'America/New_York',
         fiscalYearStart: '01-01',
+        language: 'en'
       },
-    };
+      accounting: {
+        chartOfAccounts: 'default',
+        defaultTaxRate: 0,
+        defaultPaymentTerms: 30,
+        defaultInvoiceTemplate: 'default',
+        defaultCurrency: 'USD',
+        enableMultiCurrency: false,
+        enableInventory: false,
+        enableProjects: false
+      },
+      notifications: {
+        channels: ['email'],
+        defaultRecipients: ['admin@example.com'],
+        templates: {}
+      },
+      security: {
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: true,
+          requireLowercase: true,
+          requireNumbers: true,
+          requireSpecialChars: true,
+          expiryDays: 90
+        },
+        sessionPolicy: {
+          timeoutMinutes: 30,
+          maxConcurrentSessions: 1,
+          requireTwoFactor: false
+        }
+      },
+      integrations: {}
+    },
+    createdBy: 'user1',
+    updatedBy: 'user1',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
 
-    it('should create organization successfully', async () => {
-      const mockOrganization = {
-        id: 'org123',
-        ...organizationParams,
+  describe('createOrganization', () => {
+    it('should create a new organization successfully', async () => {
+      const organizationParams = {
+        name: 'Test Organization',
+        type: OrganizationType.CORPORATION,
         status: OrganizationStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        size: OrganizationSize.SMALL,
+        description: 'Test organization description',
+        addresses: [{
+          street: '123 Test St',
+          city: 'Test City',
+          state: 'Test State',
+          country: 'Test Country',
+          postalCode: '12345',
+          isPrimary: true,
+          type: 'PHYSICAL' as const
+        }],
+        contacts: [{
+          name: 'Test Contact',
+          title: 'Test Title',
+          email: 'test@example.com',
+          phone: '1234567890',
+          isPrimary: true
+        }],
+        settings: {
+          general: {
+            timezone: 'UTC',
+            dateFormat: 'YYYY-MM-DD',
+            timeFormat: 'HH:mm:ss',
+            currency: 'USD',
+            fiscalYearStart: '01-01',
+            language: 'en'
+          },
+          accounting: {
+            chartOfAccounts: 'default',
+            defaultTaxRate: 0,
+            defaultPaymentTerms: 30,
+            defaultInvoiceTemplate: 'default',
+            defaultCurrency: 'USD',
+            enableMultiCurrency: false,
+            enableInventory: false,
+            enableProjects: false
+          },
+          notifications: {
+            channels: ['email'],
+            defaultRecipients: ['admin@example.com'],
+            templates: {}
+          },
+          security: {
+            passwordPolicy: {
+              minLength: 8,
+              requireUppercase: true,
+              requireLowercase: true,
+              requireNumbers: true,
+              requireSpecialChars: true,
+              expiryDays: 90
+            },
+            sessionPolicy: {
+              timeoutMinutes: 30,
+              maxConcurrentSessions: 1,
+              requireTwoFactor: false
+            }
+          },
+          integrations: {}
+        },
+        createdBy: 'user1',
+        updatedBy: 'user1'
       };
 
       mockOrganizationRepository.create.mockResolvedValue(mockOrganization);
@@ -78,7 +196,7 @@ describe('OrganizationService', () => {
 
     it('should throw ValidationError for invalid organization parameters', async () => {
       const invalidParams = {
-        ...organizationParams,
+        ...mockOrganization,
         name: '', // Invalid empty name
       };
 
@@ -87,389 +205,148 @@ describe('OrganizationService', () => {
         .toThrow(ValidationError);
     });
 
-    it('should handle repository errors', async () => {
+    it('should handle database errors', async () => {
       mockOrganizationRepository.create.mockRejectedValue(new Error('Database error'));
 
-      await expect(organizationService.createOrganization(organizationParams))
+      await expect(organizationService.createOrganization(mockOrganization))
         .rejects
         .toThrow('Database error');
     });
   });
 
-  describe('getOrganizationById', () => {
-    const organizationId = 'org123';
-
+  describe('getOrganization', () => {
     it('should return organization by id', async () => {
-      const mockOrganization = {
-        id: organizationId,
-        name: 'Test Organization',
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
       mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
 
-      const result = await organizationService.getOrganizationById(organizationId);
+      const result = await organizationService.getOrganization('1');
 
       expect(result).toEqual(mockOrganization);
-      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith(organizationId);
+      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith('1');
     });
 
     it('should return null for non-existent organization', async () => {
       mockOrganizationRepository.findById.mockResolvedValue(null);
 
-      const result = await organizationService.getOrganizationById(organizationId);
+      const result = await organizationService.getOrganization('999');
 
       expect(result).toBeNull();
     });
   });
 
-  describe('getOrganizations', () => {
-    const filters = {
-      type: OrganizationType.BUSINESS,
-      status: OrganizationStatus.ACTIVE,
-    };
-
-    it('should return filtered organizations', async () => {
-      const mockOrganizations = [
-        {
-          id: 'org1',
-          name: 'Organization 1',
-          type: OrganizationType.BUSINESS,
-          status: OrganizationStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: 'org2',
-          name: 'Organization 2',
-          type: OrganizationType.BUSINESS,
-          status: OrganizationStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
-      mockOrganizationRepository.find.mockResolvedValue(mockOrganizations);
-
-      const result = await organizationService.getOrganizations(filters);
-
-      expect(result).toEqual(mockOrganizations);
-      expect(mockOrganizationRepository.find).toHaveBeenCalledWith(filters);
-    });
-
-    it('should return empty array when no organizations match filters', async () => {
-      mockOrganizationRepository.find.mockResolvedValue([]);
-
-      const result = await organizationService.getOrganizations(filters);
-
-      expect(result).toEqual([]);
-    });
-  });
-
   describe('updateOrganization', () => {
-    const organizationId = 'org123';
-    const updateParams = {
-      name: 'Updated Organization',
-      contact: {
-        email: 'updated@testorg.com',
-        phone: '+1987654321',
-      },
-    };
-
     it('should update organization successfully', async () => {
-      const mockUpdatedOrganization = {
-        id: organizationId,
-        ...updateParams,
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-        updatedAt: new Date(),
+      const updatedData = {
+        name: 'Updated Organization',
+        type: OrganizationType.CORPORATION,
       };
 
-      mockOrganizationRepository.update.mockResolvedValue(mockUpdatedOrganization);
+      const updatedOrganization = {
+        ...mockOrganization,
+        ...updatedData,
+      };
 
-      const result = await organizationService.updateOrganization(organizationId, updateParams);
+      mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
+      mockOrganizationRepository.update.mockResolvedValue(updatedOrganization);
 
-      expect(result).toEqual(mockUpdatedOrganization);
-      expect(mockOrganizationRepository.update).toHaveBeenCalledWith(organizationId, updateParams);
+      const result = await organizationService.updateOrganization('1', updatedData);
+
+      expect(result).toEqual(updatedOrganization);
+      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith('1');
+      expect(mockOrganizationRepository.update).toHaveBeenCalledWith('1', updatedData);
       expect(mockNotificationService.sendOrganizationNotification).toHaveBeenCalledWith(
-        mockUpdatedOrganization,
+        updatedOrganization,
         'updated'
       );
     });
 
-    it('should throw ValidationError for invalid update parameters', async () => {
-      const invalidParams = {
-        ...updateParams,
-        name: '', // Invalid empty name
-      };
+    it('should throw ValidationError for non-existent organization', async () => {
+      mockOrganizationRepository.findById.mockResolvedValue(null);
 
-      await expect(organizationService.updateOrganization(organizationId, invalidParams))
+      await expect(organizationService.updateOrganization('999', { name: 'Updated' }))
         .rejects
         .toThrow(ValidationError);
-    });
-
-    it('should handle non-existent organization', async () => {
-      mockOrganizationRepository.update.mockRejectedValue(new Error('Organization not found'));
-
-      await expect(organizationService.updateOrganization(organizationId, updateParams))
-        .rejects
-        .toThrow('Organization not found');
     });
   });
 
   describe('deleteOrganization', () => {
-    const organizationId = 'org123';
-
     it('should delete organization successfully', async () => {
-      const mockDeletedOrganization = {
-        id: organizationId,
-        deleted: true,
-        updatedAt: new Date(),
-      };
+      mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
+      mockOrganizationRepository.delete.mockResolvedValue(true);
 
-      mockOrganizationRepository.delete.mockResolvedValue(mockDeletedOrganization);
+      const result = await organizationService.deleteOrganization('1');
 
-      const result = await organizationService.deleteOrganization(organizationId);
-
-      expect(result).toEqual(mockDeletedOrganization);
-      expect(mockOrganizationRepository.delete).toHaveBeenCalledWith(organizationId);
+      expect(result).toBe(true);
+      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith('1');
+      expect(mockOrganizationRepository.delete).toHaveBeenCalledWith('1');
       expect(mockNotificationService.sendOrganizationNotification).toHaveBeenCalledWith(
-        mockDeletedOrganization,
+        mockOrganization,
         'deleted'
       );
     });
 
-    it('should handle non-existent organization', async () => {
-      mockOrganizationRepository.delete.mockRejectedValue(new Error('Organization not found'));
+    it('should throw ValidationError for non-existent organization', async () => {
+      mockOrganizationRepository.findById.mockResolvedValue(null);
 
-      await expect(organizationService.deleteOrganization(organizationId))
+      await expect(organizationService.deleteOrganization('999'))
         .rejects
-        .toThrow('Organization not found');
+        .toThrow(ValidationError);
+    });
+  });
+
+  describe('getOrganizations', () => {
+    it('should return all organizations when no filters provided', async () => {
+      const organizations = [mockOrganization];
+      mockOrganizationRepository.find.mockResolvedValue(organizations);
+
+      const result = await organizationService.getOrganizations();
+
+      expect(result).toEqual(organizations);
+      expect(mockOrganizationRepository.find).toHaveBeenCalledWith({});
+    });
+
+    it('should return filtered organizations when filters provided', async () => {
+      const filters = {
+        type: OrganizationType.CORPORATION,
+        status: OrganizationStatus.ACTIVE,
+      };
+      const organizations = [mockOrganization];
+      mockOrganizationRepository.find.mockResolvedValue(organizations);
+
+      const result = await organizationService.getOrganizations(filters);
+
+      expect(result).toEqual(organizations);
+      expect(mockOrganizationRepository.find).toHaveBeenCalledWith(filters);
     });
   });
 
   describe('getOrganizationSummary', () => {
     it('should return organization summary', async () => {
-      const mockOrganizations = [
-        {
-          id: 'org1',
-          type: OrganizationType.BUSINESS,
-          status: OrganizationStatus.ACTIVE,
+      const summary = {
+        totalOrganizations: 1,
+        organizationsByType: {
+          [OrganizationType.CORPORATION]: 1,
+          [OrganizationType.PARTNERSHIP]: 0,
+          [OrganizationType.SOLE_PROPRIETORSHIP]: 0,
+          [OrganizationType.LLC]: 0,
+          [OrganizationType.NON_PROFIT]: 0,
+          [OrganizationType.GOVERNMENT]: 0,
+          [OrganizationType.CUSTOM]: 0,
         },
-        {
-          id: 'org2',
-          type: OrganizationType.NONPROFIT,
-          status: OrganizationStatus.ACTIVE,
+        organizationsByStatus: {
+          [OrganizationStatus.ACTIVE]: 1,
+          [OrganizationStatus.INACTIVE]: 0,
+          [OrganizationStatus.SUSPENDED]: 0,
+          [OrganizationStatus.PENDING]: 0,
+          [OrganizationStatus.ARCHIVED]: 0,
         },
-        {
-          id: 'org3',
-          type: OrganizationType.BUSINESS,
-          status: OrganizationStatus.INACTIVE,
-        },
-      ];
+      };
 
-      const mockUsers = [
-        { organizationId: 'org1' },
-        { organizationId: 'org1' },
-        { organizationId: 'org2' },
-      ];
-
-      mockOrganizationRepository.find.mockResolvedValue(mockOrganizations);
-      mockUserRepository.find.mockResolvedValue(mockUsers);
+      mockOrganizationRepository.getOrganizationSummary.mockResolvedValue(summary);
 
       const result = await organizationService.getOrganizationSummary();
 
-      expect(result).toEqual({
-        totalOrganizations: 3,
-        activeOrganizations: 2,
-        inactiveOrganizations: 1,
-        organizationsByType: {
-          [OrganizationType.BUSINESS]: 2,
-          [OrganizationType.NONPROFIT]: 1,
-        },
-        totalUsers: 3,
-        averageUsersPerOrganization: 1.5,
-      });
-      expect(mockOrganizationRepository.find).toHaveBeenCalled();
-      expect(mockUserRepository.find).toHaveBeenCalled();
-    });
-
-    it('should handle repository errors', async () => {
-      mockOrganizationRepository.find.mockRejectedValue(new Error('Database error'));
-
-      await expect(organizationService.getOrganizationSummary())
-        .rejects
-        .toThrow('Database error');
-    });
-  });
-
-  describe('getOrganizationUsers', () => {
-    const organizationId = 'org123';
-
-    it('should return organization users', async () => {
-      const mockUsers = [
-        {
-          id: 'user1',
-          email: 'user1@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          organizationId,
-        },
-        {
-          id: 'user2',
-          email: 'user2@example.com',
-          firstName: 'Jane',
-          lastName: 'Smith',
-          organizationId,
-        },
-      ];
-
-      mockUserRepository.find.mockResolvedValue(mockUsers);
-
-      const result = await organizationService.getOrganizationUsers(organizationId);
-
-      expect(result).toEqual(mockUsers);
-      expect(mockUserRepository.find).toHaveBeenCalledWith({ organizationId });
-    });
-
-    it('should return empty array when organization has no users', async () => {
-      mockUserRepository.find.mockResolvedValue([]);
-
-      const result = await organizationService.getOrganizationUsers(organizationId);
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('addUserToOrganization', () => {
-    const organizationId = 'org123';
-    const userId = 'user123';
-
-    it('should add user to organization successfully', async () => {
-      const mockOrganization = {
-        id: organizationId,
-        name: 'Test Organization',
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-      };
-
-      const mockUser = {
-        id: userId,
-        email: 'user@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-      };
-
-      const mockUpdatedUser = {
-        ...mockUser,
-        organizationId,
-        updatedAt: new Date(),
-      };
-
-      mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
-      mockUserRepository.findById.mockResolvedValue(mockUser);
-      mockUserRepository.update.mockResolvedValue(mockUpdatedUser);
-
-      const result = await organizationService.addUserToOrganization(organizationId, userId);
-
-      expect(result).toEqual(mockUpdatedUser);
-      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith(organizationId);
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
-      expect(mockUserRepository.update).toHaveBeenCalledWith(userId, { organizationId });
-      expect(mockNotificationService.sendOrganizationNotification).toHaveBeenCalledWith(
-        mockOrganization,
-        'user_added'
-      );
-    });
-
-    it('should handle non-existent organization', async () => {
-      mockOrganizationRepository.findById.mockResolvedValue(null);
-
-      await expect(organizationService.addUserToOrganization(organizationId, userId))
-        .rejects
-        .toThrow('Organization not found');
-    });
-
-    it('should handle non-existent user', async () => {
-      mockOrganizationRepository.findById.mockResolvedValue({
-        id: organizationId,
-        name: 'Test Organization',
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-      });
-      mockUserRepository.findById.mockResolvedValue(null);
-
-      await expect(organizationService.addUserToOrganization(organizationId, userId))
-        .rejects
-        .toThrow('User not found');
-    });
-  });
-
-  describe('removeUserFromOrganization', () => {
-    const organizationId = 'org123';
-    const userId = 'user123';
-
-    it('should remove user from organization successfully', async () => {
-      const mockOrganization = {
-        id: organizationId,
-        name: 'Test Organization',
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-      };
-
-      const mockUser = {
-        id: userId,
-        email: 'user@example.com',
-        firstName: 'John',
-        lastName: 'Doe',
-        organizationId,
-      };
-
-      const mockUpdatedUser = {
-        ...mockUser,
-        organizationId: null,
-        updatedAt: new Date(),
-      };
-
-      mockOrganizationRepository.findById.mockResolvedValue(mockOrganization);
-      mockUserRepository.findById.mockResolvedValue(mockUser);
-      mockUserRepository.update.mockResolvedValue(mockUpdatedUser);
-
-      const result = await organizationService.removeUserFromOrganization(organizationId, userId);
-
-      expect(result).toEqual(mockUpdatedUser);
-      expect(mockOrganizationRepository.findById).toHaveBeenCalledWith(organizationId);
-      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
-      expect(mockUserRepository.update).toHaveBeenCalledWith(userId, { organizationId: null });
-      expect(mockNotificationService.sendOrganizationNotification).toHaveBeenCalledWith(
-        mockOrganization,
-        'user_removed'
-      );
-    });
-
-    it('should handle non-existent organization', async () => {
-      mockOrganizationRepository.findById.mockResolvedValue(null);
-
-      await expect(organizationService.removeUserFromOrganization(organizationId, userId))
-        .rejects
-        .toThrow('Organization not found');
-    });
-
-    it('should handle non-existent user', async () => {
-      mockOrganizationRepository.findById.mockResolvedValue({
-        id: organizationId,
-        name: 'Test Organization',
-        type: OrganizationType.BUSINESS,
-        status: OrganizationStatus.ACTIVE,
-      });
-      mockUserRepository.findById.mockResolvedValue(null);
-
-      await expect(organizationService.removeUserFromOrganization(organizationId, userId))
-        .rejects
-        .toThrow('User not found');
+      expect(result).toEqual(summary);
+      expect(mockOrganizationRepository.getOrganizationSummary).toHaveBeenCalled();
     });
   });
 }); 

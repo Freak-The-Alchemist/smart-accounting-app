@@ -1,4 +1,4 @@
-import { AuthService } from '../AuthService';
+import { AuthService } from '../authService';
 import { User, UserRole } from '../../models/User';
 import { AuthRepository } from '../../repositories/AuthRepository';
 import { ValidationError } from '../../utils/errors';
